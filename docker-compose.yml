@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: townswars-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: townswars
+      POSTGRES_PASSWORD: dev_password_change_in_production
+      POSTGRES_DB: townswars
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U townswars"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local

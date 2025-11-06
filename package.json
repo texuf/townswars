@@ -10,7 +10,12 @@
     "lint": "eslint --format unix ./src  --max-warnings=0",
     "lint:fix": "eslint --format unix ./src  --max-warnings=0 --fix",
     "start": "bun run src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
+    "docker:restart": "docker-compose restart postgres",
+    "docker:clean": "docker-compose down -v"
   },
   "dependencies": {
     "@connectrpc/connect-node": "^2.1.0",

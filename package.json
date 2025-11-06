@@ -11,6 +11,8 @@
     "lint:fix": "eslint --format unix ./src  --max-warnings=0 --fix",
     "start": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
+    "tick": "bun run src/tick.ts",
+    "tick:watch": "while true; do bun run src/tick.ts; sleep 10; done",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f postgres",

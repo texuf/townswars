@@ -5,38 +5,44 @@ This project uses PostgreSQL with different configurations for local development
 ## Local Development (Docker)
 
 ### Prerequisites
+
 - Docker and Docker Compose installed on your machine
 
 ### Quick Start
 
 1. **Start PostgreSQL container:**
+
    ```bash
-   yarn docker:up
+   bun docker:up
    ```
+
    This starts PostgreSQL in the background on port 5432.
 
 2. **Copy environment file:**
+
    ```bash
    cp .env.sample .env
    ```
+
    The DATABASE_URL is already configured for local Docker setup.
 
 3. **Run your bot:**
    ```bash
-   yarn dev
+   bun dev
    ```
 
 ### Docker Commands
 
-- `yarn docker:up` - Start PostgreSQL container in detached mode
-- `yarn docker:down` - Stop PostgreSQL container
-- `yarn docker:logs` - View PostgreSQL logs (follow mode)
-- `yarn docker:restart` - Restart PostgreSQL container
-- `yarn docker:clean` - Stop container and remove volumes (⚠️ deletes all data)
+- `bun docker:up` - Start PostgreSQL container in detached mode
+- `bun docker:down` - Stop PostgreSQL container
+- `bun docker:logs` - View PostgreSQL logs (follow mode)
+- `bun docker:restart` - Restart PostgreSQL container
+- `bun docker:clean` - Stop container and remove volumes (⚠️ deletes all data)
 
 ### Database Connection Details
 
 When running locally with Docker:
+
 - **Host:** localhost
 - **Port:** 5432
 - **Database:** townswars
@@ -57,12 +63,14 @@ docker exec -it townswars-postgres psql -U townswars -d townswars
 ### Setup
 
 1. **Create a PostgreSQL database on Render:**
+
    - Go to [Render Dashboard](https://dashboard.render.com/)
    - Click "New +" → "PostgreSQL"
    - Choose a name and region
    - Select a plan (free tier available)
 
 2. **Get the connection string:**
+
    - After creation, go to the database dashboard
    - Copy the "Internal Database URL" (if your bot is also hosted on Render)
    - Or copy the "External Database URL" (if hosting elsewhere)
@@ -76,6 +84,7 @@ docker exec -it townswars-postgres psql -U townswars -d townswars
 ### Connection String Format
 
 Render provides connection strings in this format:
+
 ```
 postgresql://username:password@hostname:5432/database_name
 ```
@@ -85,11 +94,13 @@ Your bot will automatically use the `DATABASE_URL` environment variable in produ
 ## Data Persistence
 
 ### Local Development
+
 - Data is stored in a Docker volume named `postgres_data`
 - Data persists across container restarts
-- Use `yarn docker:clean` to completely remove all data and start fresh
+- Use `bun docker:clean` to completely remove all data and start fresh
 
 ### Production
+
 - Render manages backups automatically (on paid plans)
 - Free tier databases may have limited retention
 - Consider implementing your own backup strategy for critical data
@@ -97,6 +108,7 @@ Your bot will automatically use the `DATABASE_URL` environment variable in produ
 ## Troubleshooting
 
 ### Container won't start
+
 ```bash
 # Check if port 5432 is already in use
 lsof -i :5432
@@ -108,34 +120,38 @@ netstat -tuln | grep 5432
 ```
 
 ### Can't connect to database
+
 ```bash
 # Check container status
 docker ps
 
 # View container logs
-yarn docker:logs
+bun docker:logs
 
 # Restart the container
-yarn docker:restart
+bun docker:restart
 ```
 
 ### Reset everything
+
 ```bash
 # Stop and remove all data
-yarn docker:clean
+bun docker:clean
 
 # Start fresh
-yarn docker:up
+bun docker:up
 ```
 
 ## Next Steps
 
 After setting up the database, you'll want to:
+
 1. Install a PostgreSQL client library (e.g., `drizzle-orm`, `prisma`, or `pg`)
 2. Create database schemas/migrations
 3. Update `src/index.ts` to connect to the database
 
 Example using Drizzle ORM:
+
 ```bash
 bun add drizzle-orm postgres
 bun add -d drizzle-kit

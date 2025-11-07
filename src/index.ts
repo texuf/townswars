@@ -6,6 +6,7 @@ import { getOrCreateTown, isEngaged } from "./game/town-service";
 import { getCurrentTick } from "./game/game-state-service";
 import { renderMainMessage } from "./game/message-service";
 import { InteractionRequest, PlainMessage } from "@towns-protocol/proto";
+import { sendGlobalFeedMessage } from "./game/feed-service";
 
 const bot = await makeTownsBot(
   process.env.APP_PRIVATE_DATA!,
@@ -141,11 +142,9 @@ bot.onSlashCommand("quit", async (handler, event) => {
     // Delete the town from database (cascades to all related data)
     await deleteTown(userId);
 
+    await sendGlobalFeedMessage(bot, `**${town.name}** has quit the game.`);
     // Send goodbye message
-    await handler.sendMessage(
-      channelId,
-      `👋 **${town.name}** has been destroyed.\n\nYour town and all progress have been deleted. Thanks for playing Towns Wars!\n\nUse \`/engage\` if you want to play again.`
-    );
+    await handler.sendMessage(channelId, `**${town.name}** has been deleted.`);
   } catch (error) {
     console.error("Error in /quit command:", error);
     await handler.sendMessage(

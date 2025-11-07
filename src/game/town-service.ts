@@ -194,3 +194,12 @@ export async function levelUpTown(
     requestedLevel: newLevel, // Keep requestedLevel same as level after upgrade
   });
 }
+
+/**
+ * Delete a town and all associated data
+ * This will cascade delete all related records (resources, actions, battles, etc.)
+ * due to foreign key constraints
+ */
+export async function deleteTown(address: string): Promise<void> {
+  await db.delete(towns).where(eq(towns.address, address));
+}

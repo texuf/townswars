@@ -79,6 +79,7 @@ Build Resources → Collect Rewards → Train Troops → Attack Towns → Win Tr
 ### Commands
 
 - `/engage` - Join the game and create your town
+- `/quit` - Leave the game and delete your town permanently
 
 **Note**: All game actions (building, upgrading, collecting, attacking) are performed using the interactive buttons in your main message display.
 

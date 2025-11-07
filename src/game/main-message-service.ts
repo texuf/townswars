@@ -133,3 +133,31 @@ export async function updateMainMessageWithInteraction(
     }
   }
 }
+
+/**
+ * Delete main message from channel
+ * Removes the message from the channel and deletes the database record
+ */
+export async function deleteMainMessage(
+  handler: MessageHandler,
+  channelId: string
+): Promise<void> {
+  const stored = await getMainMessage(channelId);
+
+  if (stored?.messageId) {
+    try {
+      // Delete the actual message
+      await handler.removeEvent(channelId, stored.messageId);
+    } catch (error) {
+      console.error("Failed to delete main message:", error);
+      // Continue to delete from database anyway
+    }
+  }
+
+  // Delete from database
+  try {
+    await db.delete(mainMessages).where(eq(mainMessages.channelId, channelId));
+  } catch (error) {
+    console.error("Failed to delete main message from database:", error);
+  }
+}

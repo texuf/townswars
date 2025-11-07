@@ -65,6 +65,43 @@ bot.onSlashCommand("engage", async (handler, event) => {
   }
 });
 
+bot.onSlashCommand("quit", async (handler, event) => {
+  const { userId, channelId } = event;
+
+  try {
+    // Check if user has a town
+    const { getTown, deleteTown } = await import("./game/town-service");
+    const town = await getTown(userId);
+
+    if (!town) {
+      await handler.sendMessage(
+        channelId,
+        "❌ You're not currently playing Towns Wars. Use `/engage` to join!"
+      );
+      return;
+    }
+
+    // Delete the main message and interaction buttons
+    const { deleteMainMessage } = await import("./game/main-message-service");
+    await deleteMainMessage(handler, channelId);
+
+    // Delete the town from database (cascades to all related data)
+    await deleteTown(userId);
+
+    // Send goodbye message
+    await handler.sendMessage(
+      channelId,
+      `👋 **${town.name}** has been destroyed.\n\nYour town and all progress have been deleted. Thanks for playing Towns Wars!\n\nUse \`/engage\` if you want to play again.`
+    );
+  } catch (error) {
+    console.error("Error in /quit command:", error);
+    await handler.sendMessage(
+      channelId,
+      "❌ Failed to quit the game. Please try again or contact support."
+    );
+  }
+});
+
 // ============================================================================
 // INTERACTION RESPONSE HANDLER
 // ============================================================================

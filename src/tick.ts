@@ -59,6 +59,7 @@ async function tick() {
     const towns = await getAllTowns();
     console.log(`  Processing ${towns.length} towns...`);
 
+    const reportedBattleWins = new Set<string>();
     // 4. Process each town
     for (const town of towns) {
       try {
@@ -178,7 +179,8 @@ async function tick() {
           currentTick
         );
 
-        if (endingBattle) {
+        if (endingBattle && !reportedBattleWins.has(endingBattle.id)) {
+          reportedBattleWins.add(endingBattle.id);
           try {
             // Get attacker and defender
             const attackerTown = await getTown(endingBattle.attackerAddress);
@@ -245,11 +247,8 @@ async function tick() {
         const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
         // Refresh town state after actions
         const refreshedState = await getTownState(town, currentTick);
-        const { message: mainMessage, isSpecialMessage } = await renderMainMessage(
-          refreshedState,
-          currentTick,
-          pendingLevelUp
-        );
+        const { message: mainMessage, isSpecialMessage } =
+          await renderMainMessage(refreshedState, currentTick, pendingLevelUp);
         const buttons = await getActionButtons(
           refreshedState,
           pendingLevelUp,

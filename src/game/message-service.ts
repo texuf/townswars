@@ -25,21 +25,15 @@ async function renderPendingBattle(
     return `⚔️ Battle queued for next tick...`;
   }
 
-  return `╔═══════════════════════════════════════════════╗
-║        ⚔️  PREPARING FOR BATTLE  ⚔️           ║
-╚═══════════════════════════════════════════════╝
+  return `⚔️ **PREPARING FOR BATTLE**
 
 **${town.name}** is preparing to attack **${enemy.name}**!
 
-      🏰                    🏰
-     /${town.name.slice(0, 3)}/                   /${enemy.name.slice(0, 3)}/
-    ▓▓▓▓                   ▓▓▓▓
+🎯 **Target:** ${enemy.name} (Level ${enemy.level})
 
-⚔️ **Your troops march to war...**
+⏱️ **Status:** Your troops march to war...
 
-🎯 Target: ${enemy.name} (Level ${enemy.level})
-
-⏱️ Battle begins next tick!`;
+Battle begins next tick!`;
 }
 
 /**
@@ -59,22 +53,14 @@ async function renderBattleInProgressAttacker(
     return `⚔️ Battle in progress...`;
   }
 
-  return `╔═══════════════════════════════════════════════╗
-║        ⚔️  ATTACKING ${enemy.name
-    .toUpperCase()
-    .slice(0, 15)
-    .padEnd(15)}  ⚔️        ║
-╚═══════════════════════════════════════════════╝
+  return `⚔️ **ATTACKING ${enemy.name.toUpperCase()}**
 
-     🏹🏹🏹              🏰
-    /|\\  /|\\           ▓▓▓▓
-   / | \\/ | \\          ████
-     YOUR TROOPS      THEIR WALLS
+🎯 **Target:** ${enemy.name} (Level ${enemy.level})
 
 💰 **Potential Gain:** ${formatDollars(battle.reward)}
 ⚠️ **At Risk:** ${formatDollars(battle.penalty)}
 
-⏱️ Battle ends in **${ticksRemaining} ticks** (${secondsRemaining}s)
+⏱️ **Time Remaining:** ${ticksRemaining} ticks (${secondsRemaining}s)
 
 🎲 Your fate is being decided...`;
 }
@@ -96,21 +82,14 @@ async function renderBattleInProgressDefender(
     return `🛡️ Under attack...`;
   }
 
-  return `╔═══════════════════════════════════════════════╗
-║           🛡️  UNDER ATTACK  🛡️               ║
-╚═══════════════════════════════════════════════╝
+  return `🛡️ **UNDER ATTACK**
 
-   🏰              🏹🏹🏹
-  ▓▓▓▓            /|\\  /|\\
-  ████           / | \\/ | \\
-YOUR WALLS      THEIR TROOPS
-
-⚠️ **${enemy.name}** is attacking!
+⚠️ **Attacker:** ${enemy.name} (Level ${enemy.level})
 
 💰 **Potential Gain:** ${formatDollars(battle.penalty)}
 ⚠️ **At Risk:** ${formatDollars(battle.reward)}
 
-⏱️ Battle ends in **${ticksRemaining} ticks** (${secondsRemaining}s)
+⏱️ **Time Remaining:** ${ticksRemaining} ticks (${secondsRemaining}s)
 
 🛡️ Your defenses are holding...`;
 }
@@ -134,15 +113,9 @@ async function renderBattleSummary(
     // Attacker won
     const actualReward = Math.floor((battle.reward * battle.percentage) / 100);
 
-    return `╔═══════════════════════════════════════════════╗
-║            🎉  VICTORY!  🎉                   ║
-╚═══════════════════════════════════════════════╝
+    return `🎉 **VICTORY!**
 
 You demolished **${enemyName}**!
-
-      🏹                ☠️
-     /|\\              ████
-    / | \\            (ruins)
 
 💰 **Gained:** ${formatDollars(actualReward)}
 🎯 **Damage:** ${battle.percentage}% of defenses destroyed
@@ -152,15 +125,9 @@ You demolished **${enemyName}**!
 _Your forces have proven their strength._`;
   } else if (isAttacker && !battle.success) {
     // Attacker lost
-    return `╔═══════════════════════════════════════════════╗
-║             ☠️  DEFEAT  ☠️                    ║
-╚═══════════════════════════════════════════════╝
+    return `☠️ **DEFEAT**
 
 You lost the attack on **${enemyName}**
-
-      ☠️                 🏰
-    (fallen)           ▓▓▓▓
-                       ████
 
 💸 **Lost:** ${formatDollars(battle.penalty)}
 
@@ -169,15 +136,9 @@ You lost the attack on **${enemyName}**
 _Build up your forces and try again._`;
   } else if (!isAttacker && !battle.success) {
     // Defender won
-    return `╔═══════════════════════════════════════════════╗
-║          🛡️  DEFENDED!  🛡️                   ║
-╚═══════════════════════════════════════════════╝
+    return `🛡️ **DEFENDED!**
 
 You beat back **${enemyName}**!
-
-      🏰                ☠️
-     ▓▓▓▓            (fallen)
-     ████
 
 💰 **Gained:** ${formatDollars(battle.penalty)}
 
@@ -188,15 +149,9 @@ _Your enemies have been repelled._`;
     // Defender lost
     const actualReward = Math.floor((battle.reward * battle.percentage) / 100);
 
-    return `╔═══════════════════════════════════════════════╗
-║           ⚠️  BREACHED  ⚠️                    ║
-╚═══════════════════════════════════════════════╝
+    return `⚠️ **BREACHED**
 
 Your defenses were defeated by **${enemyName}**
-
-      🏰                🏹
-     ☠️☠️              /|\\
-   (breached)         / | \\
 
 💸 **Lost:** ${formatDollars(actualReward)}
 🎯 **Damage:** ${battle.percentage}% of defenses destroyed
@@ -211,16 +166,9 @@ _Rebuild and strengthen your defenses._`;
  * Priority 8: New Level Up
  */
 function renderNewLevelUp(town: Town): string {
-  return `╔═══════════════════════════════════════════════╗
-║        🏰  TOWN UPGRADED!  🏰                 ║
-╚═══════════════════════════════════════════════╝
+  return `🏰 **TOWN UPGRADED!**
 
 **${town.name}** has reached **Level ${town.level}**!
-
-      ⬆️
-     🏰🏰
-    ▓▓▓▓▓▓
-   ████████
 
 ✨ **New buildings and upgrades unlocked!**
 🛡️ **Shield activated!**

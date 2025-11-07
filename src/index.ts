@@ -305,7 +305,8 @@ bot.onInteractionResponse(async (handler, event) => {
     }
 
     if (confirmMessage) {
-      await handler.sendMessage(channelId, confirmMessage);
+      // await handler.sendMessage(channelId, confirmMessage);
+      console.log(confirmMessage);
     }
   } catch (error) {
     console.error("Error handling interaction response:", error);

@@ -23,6 +23,7 @@ import {
 } from "./game/battle-service";
 import { sendGlobalFeedMessage } from "./game/feed-service";
 import { ActionType, formatDollars } from "./game/static-data";
+import { logTownError } from "./game/error-service";
 
 async function tick() {
   const startTime = Date.now();
@@ -98,9 +99,9 @@ async function tick() {
             const targetTown = await getTown(targetAddress);
 
             if (!targetTown) {
-              console.log(
-                `    ✗ ${town.name}: Battle target not found: ${targetAddress}`
-              );
+              const errorMsg = `Battle target not found: ${targetAddress}`;
+              console.log(`    ✗ ${town.name}: ${errorMsg}`);
+              await logTownError(town.address, errorMsg, currentTick);
               continue;
             }
 
@@ -111,9 +112,9 @@ async function tick() {
             );
 
             if (!targetCanBeAttacked) {
-              console.log(
-                `    ✗ ${town.name}: Cannot attack ${targetTown.name} (shielded or in battle)`
-              );
+              const errorMsg = `Cannot attack ${targetTown.name} (shielded or in battle)`;
+              console.log(`    ✗ ${town.name}: ${errorMsg}`);
+              await logTownError(town.address, errorMsg, currentTick);
               continue;
             }
 
@@ -143,10 +144,9 @@ async function tick() {
               `    ⚔️ ${town.name} attacks ${targetTown.name} (ends at tick ${battle.end})`
             );
           } catch (error) {
-            console.error(
-              `    ✗ Error processing battle for ${town.name}:`,
-              error
-            );
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            console.error(`    ✗ Error processing battle for ${town.name}:`, error);
+            await logTownError(town.address, `Battle creation failed: ${errorMessage}`, currentTick);
           }
         }
 
@@ -162,7 +162,16 @@ async function tick() {
             const attackerTown = await getTown(endingBattle.attackerAddress);
             const defenderTown = await getTown(endingBattle.defenderAddress);
 
-            if (attackerTown && defenderTown) {
+            if (!attackerTown || !defenderTown) {
+              const errorMsg = `Battle resolution failed: Missing town data`;
+              console.error(`    ✗ ${errorMsg}`);
+              if (attackerTown) {
+                await logTownError(attackerTown.address, errorMsg, currentTick);
+              }
+              if (defenderTown) {
+                await logTownError(defenderTown.address, errorMsg, currentTick);
+              }
+            } else {
               // Resolve battle (transfer treasury)
               await resolveBattle(endingBattle, attackerTown, defenderTown);
 
@@ -192,10 +201,9 @@ async function tick() {
               }
             }
           } catch (error) {
-            console.error(
-              `    ✗ Error resolving battle for ${town.name}:`,
-              error
-            );
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
+            console.error(`    ✗ Error resolving battle for ${town.name}:`, error);
+            await logTownError(town.address, `Battle resolution failed: ${errorMessage}`, currentTick);
           }
         }
 

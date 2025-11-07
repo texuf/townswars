@@ -15,6 +15,7 @@ import type {
 import { deleteAction } from "./action-service";
 import { updateTown, addCoins, addTroops, levelUpTown } from "./town-service";
 import { collectResourceRewards } from "./resource-service";
+import { logTownError } from "./error-service";
 
 /**
  * Result of executing an action
@@ -520,13 +521,30 @@ export async function executePendingActions(
       continue; // Skip battles, handled separately
     }
 
-    const result = await executeAction(action, town, currentTick);
+    try {
+      const result = await executeAction(action, town, currentTick);
 
-    if (result.success) {
-      successful.push({ action, result });
-      await deleteAction(action.id);
-    } else {
-      failed.push({ action, result });
+      if (result.success) {
+        successful.push({ action, result });
+        await deleteAction(action.id);
+      } else {
+        failed.push({ action, result });
+        // Log failed action to database
+        await logTownError(town.address, result.message, currentTick);
+        await deleteAction(action.id);
+      }
+    } catch (error) {
+      // Catch any unexpected errors during execution
+      const errorMessage = error instanceof Error ? error.message : "Unknown error during action execution";
+      failed.push({
+        action,
+        result: {
+          success: false,
+          message: errorMessage,
+        },
+      });
+      // Log unexpected errors
+      await logTownError(town.address, `Action ${action.type} failed: ${errorMessage}`, currentTick);
       await deleteAction(action.id);
     }
   }

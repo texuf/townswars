@@ -17,6 +17,7 @@ import {
   queueBattle,
 } from "./action-service";
 import { RESOURCE_DEFINITIONS_TABLE, RESOURCE_LIMITS_TABLE, TOWN_LEVELS_TABLE } from "./static-data";
+import { logTownError } from "./error-service";
 
 /**
  * Handle /buy command
@@ -342,59 +343,84 @@ export async function handleAttack(
   channelId: string,
   args: string[]
 ): Promise<void> {
-  const town = await getTown(userId);
-  if (!town) {
-    await handler.sendMessage(channelId, "You need to `/engage` first!");
-    return;
-  }
+  try {
+    const town = await getTown(userId);
+    if (!town) {
+      await handler.sendMessage(channelId, "❌ You need to `/engage` first!");
+      return;
+    }
 
-  const targetAddress = args[0];
-  if (!targetAddress) {
+    const targetAddress = args[0];
+    if (!targetAddress) {
+      await handler.sendMessage(
+        channelId,
+        "❌ **Usage:** `/attack <target-address>`\n\n**Example:** `/attack 0x1234...`\n\n**Tip:** Use the attack buttons in your main message for quick attacks!"
+      );
+      return;
+    }
+
+    // Validate target exists
+    const targetTown = await getTown(targetAddress);
+    if (!targetTown) {
+      await handler.sendMessage(
+        channelId,
+        `❌ Town not found: \`${targetAddress}\`\n\nMake sure the address is correct and the town has joined the game.`
+      );
+      return;
+    }
+
+    // Check if trying to attack self
+    if (targetAddress === userId) {
+      await handler.sendMessage(
+        channelId,
+        "❌ You cannot attack yourself! 🤦\n\nChoose a different target to plunder their treasury."
+      );
+      return;
+    }
+
+    // Check if can afford attack
+    const townLevel = TOWN_LEVELS_TABLE[town.level];
+    if (!townLevel) {
+      await handler.sendMessage(channelId, "❌ Invalid town level. Please contact support.");
+      return;
+    }
+
+    if (town.coins < townLevel.attackCost) {
+      await handler.sendMessage(
+        channelId,
+        `❌ **Not enough coins!**\n\n**Need:** ${townLevel.attackCost} coins\n**Have:** ${town.coins} coins\n\n💡 Collect from your mines to get more coins!`
+      );
+      return;
+    }
+
+    // Check if have troops
+    if (town.troops === 0) {
+      await handler.sendMessage(
+        channelId,
+        "❌ **No troops available!**\n\n⚔️ You need troops to attack!\n\n💡 Build barracks and collect troops before attacking."
+      );
+      return;
+    }
+
+    // Queue battle action for next tick
+    const currentTick = await getCurrentTick();
+    await queueBattle(userId, currentTick + 1, targetAddress);
+
     await handler.sendMessage(
       channelId,
-      "Usage: `/attack <target-address>`\n\nExample: `/attack 0x1234...`"
+      `✅ **Attack queued!**\n\n⚔️ Your **${town.troops} troops** will attack **${targetTown.name}** (Level ${targetTown.level}) next tick!\n\n🎯 Cost: ${townLevel.attackCost} coins\n💰 Potential reward: Up to 50% of their treasury\n⏱️ Battle starts in ~10 seconds`
     );
-    return;
-  }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error(`Error in handleAttack for user ${userId}:`, error);
 
-  // Validate target exists
-  const targetTown = await getTown(targetAddress);
-  if (!targetTown) {
-    await handler.sendMessage(channelId, `Town not found: ${targetAddress}`);
-    return;
-  }
+    // Log to database
+    const currentTick = await getCurrentTick();
+    await logTownError(userId, `Attack command failed: ${errorMessage}`, currentTick);
 
-  // Check if trying to attack self
-  if (targetAddress === userId) {
-    await handler.sendMessage(channelId, "You cannot attack yourself!");
-    return;
-  }
-
-  // Check if can afford attack
-  const townLevel = TOWN_LEVELS_TABLE[town.level];
-  if (town.coins < townLevel.attackCost) {
     await handler.sendMessage(
       channelId,
-      `Not enough coins! Need ${townLevel.attackCost}, have ${town.coins}`
+      `❌ **Error:** Something went wrong while queuing your attack.\n\n**Details:** ${errorMessage}\n\nPlease try again or contact support if the issue persists.`
     );
-    return;
   }
-
-  // Check if have troops
-  if (town.troops === 0) {
-    await handler.sendMessage(
-      channelId,
-      "You need troops to attack! Build barracks and collect troops first."
-    );
-    return;
-  }
-
-  // Queue battle action for next tick
-  const currentTick = await getCurrentTick();
-  await queueBattle(userId, currentTick + 1, targetAddress);
-
-  await handler.sendMessage(
-    channelId,
-    `✓ Queued attack on ${targetTown.name} for next tick\n\n⚔️ Your ${town.troops} troops will attack their defenses!`
-  );
 }

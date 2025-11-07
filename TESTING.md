@@ -157,15 +157,18 @@ bun run db:studio
 
 Opens a web interface at http://localhost:4983 to browse and edit database tables.
 
-## Tick System (Not Yet Implemented)
+## Tick System
 
-The tick system will run every 10 seconds and handle:
-- Resource reward generation
-- Battle progression
-- Shield/boost expiration
-- Action execution
+The tick system runs every 10 seconds and handles:
+- Incrementing global tick counter
+- Cleaning up expired battles, shields, and boosts
+- Updating resource rewards (adding rewardsPerTick to rewardsBank)
+- Updating main messages for all towns
+- TODO: Action execution (Phase 2)
+- TODO: Battle processing (Phase 3)
+- TODO: Battle suggestions (Phase 3)
 
-**To run manually (once implemented):**
+**To run manually:**
 ```bash
 bun run tick
 ```
@@ -173,6 +176,25 @@ bun run tick
 **To run continuously (development):**
 ```bash
 bun run tick:watch
+```
+
+This will execute the tick every 10 seconds automatically.
+
+**What happens each tick:**
+1. Global tick counter increments
+2. All expired battles/shields/boosts are removed from database
+3. For each town:
+   - Resource rewards accumulate (if past cooldown)
+   - Main message updates (if content changed)
+4. Logs show progress and timing
+
+**Example output:**
+```
+[2025-01-06T12:00:00.000Z] Tick starting...
+  Current tick: 42
+  ✓ Cleaned up expired battles, shields, and boosts
+  Processing 5 towns...
+[2025-01-06T12:00:00.123Z] Tick completed in 123ms
 ```
 
 ## Common Issues
@@ -193,19 +215,28 @@ bun run tick:watch
 
 ## Next Steps
 
-Phase 1 remaining:
-- [ ] Tick system implementation
+✅ **Phase 1 Complete: Core Infrastructure**
+- [x] Database schema setup
+- [x] Town creation and persistence
+- [x] Basic bot framework integration
+- [x] Tick system implementation
 
-Phase 2:
-- [ ] Resource system (buy, upgrade, collect)
-- [ ] Resource rewards generation
+**Phase 2: Resource System**
+- [ ] Resource purchase (buy action)
+- [ ] Resource upgrade (upgrade action)
+- [ ] Resource collection (collect action)
+- [ ] Action queue system
+- [ ] Enhanced main message UI with buttons
 
-Phase 3:
-- [ ] Battle system
-- [ ] Attack mechanics
+**Phase 3: Combat System**
+- [ ] Battle calculation algorithm
+- [ ] Battle initiation and processing
 - [ ] Battle resolution
+- [ ] Battle suggestions system
+- [ ] Fancy battle messages (ASCII art)
 
-Phase 4:
-- [ ] Level up approval flow
-- [ ] Shield/boost mechanics
+**Phase 4: Progression System**
+- [ ] Level up approval flow (with actual treasury interaction)
+- [ ] Shield mechanics (purchase, activation, cooldown)
+- [ ] Boost mechanics (purchase, activation, multiplier)
 - [ ] Treasury integration

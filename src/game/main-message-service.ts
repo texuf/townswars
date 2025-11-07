@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 import { db, mainMessages, type MainMessage, type NewMainMessage } from "../db";
-import type { BotHandler } from "@towns-protocol/bot";
 import { messagesAreDifferent } from "./message-service";
+
+// Handler interface with methods we need
+interface MessageHandler {
+  sendMessage: (channelId: string, message: string) => Promise<{ eventId: string }>;
+  removeEvent: (channelId: string, eventId: string) => Promise<any>;
+}
 
 /**
  * Get the stored main message for a channel
@@ -54,7 +59,7 @@ export async function setMainMessage(
  * Deletes previous message before posting new one
  */
 export async function updateMainMessage(
-  handler: BotHandler,
+  handler: MessageHandler,
   channelId: string,
   newContent: string
 ): Promise<void> {

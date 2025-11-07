@@ -1,4 +1,4 @@
-import type { Town, Resource } from "../db";
+import type { Town, Resource, Battle } from "../db";
 import type { TownState } from "./town-state-service";
 import {
   TOWN_LEVELS_TABLE,
@@ -6,6 +6,233 @@ import {
   RESOURCE_LIMITS_TABLE,
   formatDollars,
 } from "./static-data";
+
+// ============================================================================
+// FANCY DISPLAY STATES (Priority-based dramatic events)
+// ============================================================================
+
+/**
+ * Priority 1: Pending Battle - Attack queued for next tick
+ */
+async function renderPendingBattle(
+  town: Town,
+  targetAddress: string
+): Promise<string> {
+  const { getTown } = await import("./town-service");
+  const enemy = await getTown(targetAddress);
+
+  if (!enemy) {
+    return `⚔️ Battle queued for next tick...`;
+  }
+
+  return `╔═══════════════════════════════════════════════╗
+║        ⚔️  PREPARING FOR BATTLE  ⚔️           ║
+╚═══════════════════════════════════════════════╝
+
+**${town.name}** is preparing to attack **${enemy.name}**!
+
+      🏰                    🏰
+     /${town.name.slice(0, 3)}/                   /${enemy.name.slice(0, 3)}/
+    ▓▓▓▓                   ▓▓▓▓
+
+⚔️ **Your troops march to war...**
+
+🎯 Target: ${enemy.name} (Level ${enemy.level})
+
+⏱️ Battle begins next tick!`;
+}
+
+/**
+ * Priority 2: Battle In Progress - Attacker View
+ */
+async function renderBattleInProgressAttacker(
+  town: Town,
+  battle: Battle,
+  currentTick: number
+): Promise<string> {
+  const { getTown } = await import("./town-service");
+  const enemy = await getTown(battle.defenderAddress);
+  const ticksRemaining = battle.end - currentTick;
+  const secondsRemaining = ticksRemaining * 10;
+
+  if (!enemy) {
+    return `⚔️ Battle in progress...`;
+  }
+
+  return `╔═══════════════════════════════════════════════╗
+║        ⚔️  ATTACKING ${enemy.name.toUpperCase().slice(0, 15).padEnd(15)}  ⚔️        ║
+╚═══════════════════════════════════════════════╝
+
+     🏹🏹🏹              🏰
+    /|\\  /|\\           ▓▓▓▓
+   / | \\/ | \\          ████
+     YOUR TROOPS      THEIR WALLS
+
+💰 **Potential Gain:** ${formatDollars(battle.reward)}
+⚠️ **At Risk:** ${formatDollars(battle.penalty)}
+
+⏱️ Battle ends in **${ticksRemaining} ticks** (${secondsRemaining}s)
+
+🎲 Your fate is being decided...`;
+}
+
+/**
+ * Priority 3: Battle In Progress - Defender View
+ */
+async function renderBattleInProgressDefender(
+  town: Town,
+  battle: Battle,
+  currentTick: number
+): Promise<string> {
+  const { getTown } = await import("./town-service");
+  const enemy = await getTown(battle.attackerAddress);
+  const ticksRemaining = battle.end - currentTick;
+  const secondsRemaining = ticksRemaining * 10;
+
+  if (!enemy) {
+    return `🛡️ Under attack...`;
+  }
+
+  return `╔═══════════════════════════════════════════════╗
+║           🛡️  UNDER ATTACK  🛡️               ║
+╚═══════════════════════════════════════════════╝
+
+   🏰              🏹🏹🏹
+  ▓▓▓▓            /|\\  /|\\
+  ████           / | \\/ | \\
+YOUR WALLS      THEIR TROOPS
+
+⚠️ **${enemy.name}** is attacking!
+
+💰 **Potential Gain:** ${formatDollars(battle.penalty)}
+⚠️ **At Risk:** ${formatDollars(battle.reward)}
+
+⏱️ Battle ends in **${ticksRemaining} ticks** (${secondsRemaining}s)
+
+🛡️ Your defenses are holding...`;
+}
+
+/**
+ * Priority 4-7: Battle Summary
+ */
+async function renderBattleSummary(
+  town: Town,
+  battle: Battle,
+  isAttacker: boolean
+): Promise<string> {
+  const { getTown } = await import("./town-service");
+  const enemyAddress = isAttacker
+    ? battle.defenderAddress
+    : battle.attackerAddress;
+  const enemy = await getTown(enemyAddress);
+  const enemyName = enemy?.name || "Enemy";
+
+  if (isAttacker && battle.success) {
+    // Attacker won
+    const actualReward = Math.floor(
+      (battle.reward * battle.percentage) / 100
+    );
+
+    return `╔═══════════════════════════════════════════════╗
+║            🎉  VICTORY!  🎉                   ║
+╚═══════════════════════════════════════════════╝
+
+You demolished **${enemyName}**!
+
+      🏹                ☠️
+     /|\\              ████
+    / | \\            (ruins)
+
+💰 **Gained:** ${formatDollars(actualReward)}
+🎯 **Damage:** ${battle.percentage}% of defenses destroyed
+
+⚔️ Your troops have returned victorious!
+
+_Your forces have proven their strength._`;
+  } else if (isAttacker && !battle.success) {
+    // Attacker lost
+    return `╔═══════════════════════════════════════════════╗
+║             ☠️  DEFEAT  ☠️                    ║
+╚═══════════════════════════════════════════════╝
+
+You lost the attack on **${enemyName}**
+
+      ☠️                 🏰
+    (fallen)           ▓▓▓▓
+                       ████
+
+💸 **Lost:** ${formatDollars(battle.penalty)}
+
+⚔️ Your troops were destroyed.
+
+_Build up your forces and try again._`;
+  } else if (!isAttacker && !battle.success) {
+    // Defender won
+    return `╔═══════════════════════════════════════════════╗
+║          🛡️  DEFENDED!  🛡️                   ║
+╚═══════════════════════════════════════════════╝
+
+You beat back **${enemyName}**!
+
+      🏰                ☠️
+     ▓▓▓▓            (fallen)
+     ████
+
+💰 **Gained:** ${formatDollars(battle.penalty)}
+
+🛡️ Your defenses held strong!
+
+_Your enemies have been repelled._`;
+  } else {
+    // Defender lost
+    const actualReward = Math.floor(
+      (battle.reward * battle.percentage) / 100
+    );
+
+    return `╔═══════════════════════════════════════════════╗
+║           ⚠️  BREACHED  ⚠️                    ║
+╚═══════════════════════════════════════════════╝
+
+Your defenses were defeated by **${enemyName}**
+
+      🏰                🏹
+     ☠️☠️              /|\\
+   (breached)         / | \\
+
+💸 **Lost:** ${formatDollars(actualReward)}
+🎯 **Damage:** ${battle.percentage}% of defenses destroyed
+
+🛡️ You are now protected by battle cooldown.
+
+_Rebuild and strengthen your defenses._`;
+  }
+}
+
+/**
+ * Priority 8: New Level Up
+ */
+function renderNewLevelUp(town: Town): string {
+  return `╔═══════════════════════════════════════════════╗
+║        🏰  TOWN UPGRADED!  🏰                 ║
+╚═══════════════════════════════════════════════╝
+
+**${town.name}** has reached **Level ${town.level}**!
+
+      ⬆️
+     🏰🏰
+    ▓▓▓▓▓▓
+   ████████
+
+✨ **New buildings and upgrades unlocked!**
+🛡️ **Shield activated!**
+💰 **Treasury bonus received!**
+
+_Your town grows in power and prestige._`;
+}
+
+// ============================================================================
+// STANDARD DISPLAY (No dramatic events)
+// ============================================================================
 
 /**
  * Render the main message for a town with full UI
@@ -35,6 +262,42 @@ This is a one-time approval for this level upgrade.
 
 Use the buttons below to approve or cancel.`;
   }
+
+  // Check for pending battle action
+  const { getPendingActions } = await import("./action-service");
+  const { ActionType } = await import("./static-data");
+  const pendingActions = await getPendingActions(town.address, currentTick);
+  const pendingBattle = pendingActions.find((a) => a.type === ActionType.Battle);
+
+  // Priority 1: Pending Battle
+  if (pendingBattle) {
+    const targetAddress = (pendingBattle.data as any).targetAddress;
+    return await renderPendingBattle(town, targetAddress);
+  }
+
+  // Priority 2-3: Battle In Progress
+  if (battleActive && battle) {
+    const isAttacker = battle.attackerAddress === town.address;
+    if (isAttacker) {
+      return await renderBattleInProgressAttacker(town, battle, currentTick);
+    } else {
+      return await renderBattleInProgressDefender(town, battle, currentTick);
+    }
+  }
+
+  // Priority 4-7: Battle Summary
+  if (battleSummary && battle) {
+    const isAttacker = battle.attackerAddress === town.address;
+    return await renderBattleSummary(town, battle, isAttacker);
+  }
+
+  // Priority 8: New Level Up
+  const newLevelUp = town.leveledUpAt === currentTick;
+  if (newLevelUp) {
+    return renderNewLevelUp(town);
+  }
+
+  // Standard display (no dramatic events)
 
   const lines: string[] = [];
 

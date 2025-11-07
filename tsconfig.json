@@ -21,5 +21,6 @@
         "outDir": "./dist",
         "types": ["node"]
     },
-    "include": ["src/**/*", "esbuild.config.mjs"]
+    "include": ["src/**/*", "esbuild.config.mjs"],
+    "exclude": ["src/**/*.test.ts"]
 }

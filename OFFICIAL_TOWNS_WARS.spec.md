@@ -814,7 +814,7 @@ describe("RESOURCE_LIMITS_TABLE maxLevel constraints", () => {
 ### Phase 1: Core Infrastructure
 
 - [x] Database schema setup
-- [ ] Town creation and persistence
+- [x] Town creation and persistence
 - [ ] Basic bot framework integration
 - [ ] Tick system implementation
 

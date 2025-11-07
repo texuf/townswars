@@ -21,3 +21,6 @@ await tick();
 
 // Exit cleanly
 process.exit(0);
+
+// Make this file a module
+export {};

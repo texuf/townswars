@@ -820,11 +820,11 @@ describe("RESOURCE_LIMITS_TABLE maxLevel constraints", () => {
 
 ### Phase 2: Resource System
 
-- [ ] Resource static data tables
-- [ ] Resource purchase logic
-- [ ] Resource upgrade logic
-- [ ] Resource reward generation
-- [ ] Collection mechanism
+- [x] Resource static data tables
+- [x] Resource purchase logic
+- [x] Resource upgrade logic
+- [x] Resource reward generation
+- [x] Collection mechanism
 
 ### Phase 3: Combat System
 

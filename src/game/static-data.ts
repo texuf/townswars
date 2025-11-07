@@ -12,6 +12,7 @@ export interface TownLevel {
   coinAllocation: number; // coins given on level upgrade
   boostCost: number;
   boostMultiplier: number;
+  boostDuration: number; // ticks
   boostCooldown: number; // ticks
   shieldCost: number;
   shieldDuration: number; // ticks
@@ -32,6 +33,7 @@ export const TOWN_LEVELS_TABLE: Record<number, TownLevel> = {
     coinAllocation: 0,
     boostCost: 0,
     boostMultiplier: 1,
+    boostDuration: 0,
     boostCooldown: 0,
     shieldCost: 0,
     shieldDuration: 0,
@@ -50,6 +52,7 @@ export const TOWN_LEVELS_TABLE: Record<number, TownLevel> = {
     coinAllocation: 1000,
     boostCost: 100,
     boostMultiplier: 2,
+    boostDuration: 30, // 300 seconds (30 ticks * 10s)
     boostCooldown: 50, // 500 seconds (50 ticks * 10s)
     shieldCost: 100,
     shieldDuration: 30, // 300 seconds (30 ticks * 10s)
@@ -68,6 +71,7 @@ export const TOWN_LEVELS_TABLE: Record<number, TownLevel> = {
     coinAllocation: 2000,
     boostCost: 200,
     boostMultiplier: 2,
+    boostDuration: 40, // 400 seconds
     boostCooldown: 50,
     shieldCost: 200,
     shieldDuration: 40,
@@ -86,6 +90,7 @@ export const TOWN_LEVELS_TABLE: Record<number, TownLevel> = {
     coinAllocation: 3000,
     boostCost: 300,
     boostMultiplier: 2,
+    boostDuration: 50, // 500 seconds
     boostCooldown: 50,
     shieldCost: 300,
     shieldDuration: 50,

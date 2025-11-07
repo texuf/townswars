@@ -10,11 +10,18 @@ import commands from "./commands";
 import { incrementTick, getCurrentTick } from "./game/game-state-service";
 import { getAllTowns, getTown, updateTown } from "./game/town-service";
 import { cleanupAllExpired } from "./game/cleanup-service";
-import { getTownState, getTownResources, canBeAttacked } from "./game/town-state-service";
+import {
+  getTownState,
+  getTownResources,
+  canBeAttacked,
+} from "./game/town-state-service";
 import { updateTownResourceRewards } from "./game/resource-service";
 import { renderMainMessage, getActionButtons } from "./game/message-service";
-import { updateMainMessageWithInteraction } from "./game/main-message-service";
-import { hasPendingLevelUpRequest, getPendingActions } from "./game/action-service";
+import { updateMainMessage } from "./game/main-message-service";
+import {
+  hasPendingLevelUpRequest,
+  getPendingActions,
+} from "./game/action-service";
 import { executePendingActions } from "./game/action-executor";
 import {
   createBattle,
@@ -62,7 +69,10 @@ async function tick() {
         await updateTownResourceRewards(townState.resources, currentTick);
 
         // c. Apply actions (except battles)
-        const pendingActions = await getPendingActions(town.address, currentTick);
+        const pendingActions = await getPendingActions(
+          town.address,
+          currentTick
+        );
         const { successful, failed } = await executePendingActions(
           town,
           pendingActions,
@@ -137,16 +147,28 @@ async function tick() {
             // Send global feed message
             await sendGlobalFeedMessage(
               bot,
-              `${town.name} is attacking ${targetTown.name} (potential gain: ${formatDollars(battle.reward)}, at risk: ${formatDollars(battle.penalty)})`
+              `${town.name} is attacking ${
+                targetTown.name
+              } (potential gain: ${formatDollars(
+                battle.reward
+              )}, at risk: ${formatDollars(battle.penalty)})`
             );
 
             console.log(
               `    ⚔️ ${town.name} attacks ${targetTown.name} (ends at tick ${battle.end})`
             );
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Unknown error";
-            console.error(`    ✗ Error processing battle for ${town.name}:`, error);
-            await logTownError(town.address, `Battle creation failed: ${errorMessage}`, currentTick);
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            console.error(
+              `    ✗ Error processing battle for ${town.name}:`,
+              error
+            );
+            await logTownError(
+              town.address,
+              `Battle creation failed: ${errorMessage}`,
+              currentTick
+            );
           }
         }
 
@@ -183,7 +205,9 @@ async function tick() {
 
                 await sendGlobalFeedMessage(
                   bot,
-                  `${attackerTown.name} demolished ${defenderTown.name}, gained ${formatDollars(actualReward)}`
+                  `${attackerTown.name} demolished ${
+                    defenderTown.name
+                  }, gained ${formatDollars(actualReward)}`
                 );
 
                 console.log(
@@ -192,7 +216,9 @@ async function tick() {
               } else {
                 await sendGlobalFeedMessage(
                   bot,
-                  `${defenderTown.name} beat back ${attackerTown.name}, gained ${formatDollars(endingBattle.penalty)}`
+                  `${defenderTown.name} beat back ${
+                    attackerTown.name
+                  }, gained ${formatDollars(endingBattle.penalty)}`
                 );
 
                 console.log(
@@ -201,9 +227,17 @@ async function tick() {
               }
             }
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Unknown error";
-            console.error(`    ✗ Error resolving battle for ${town.name}:`, error);
-            await logTownError(town.address, `Battle resolution failed: ${errorMessage}`, currentTick);
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            console.error(
+              `    ✗ Error resolving battle for ${town.name}:`,
+              error
+            );
+            await logTownError(
+              town.address,
+              `Battle resolution failed: ${errorMessage}`,
+              currentTick
+            );
           }
         }
 
@@ -216,14 +250,12 @@ async function tick() {
           currentTick,
           pendingLevelUp
         );
-        const buttons = await getActionButtons(refreshedState, pendingLevelUp, currentTick);
-        await updateMainMessageWithInteraction(
-          bot,
-          town.channelId,
-          town.address,
-          mainMessage,
-          buttons
+        const buttons = await getActionButtons(
+          refreshedState,
+          pendingLevelUp,
+          currentTick
         );
+        await updateMainMessage(bot, town.channelId, mainMessage, buttons);
       } catch (error) {
         console.error(`  ✗ Error processing town ${town.name}:`, error);
         // Continue with next town

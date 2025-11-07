@@ -17,7 +17,7 @@ interface MessageHandler {
   removeEvent: (channelId: string, eventId: string) => Promise<any>;
   sendInteractionRequest: (
     channelId: string,
-    request: PlainMessage<InteractionRequest>
+    request: PlainMessage<InteractionRequest["content"]>
   ) => Promise<{ eventId: string }>;
 }
 
@@ -80,7 +80,8 @@ export async function setMainMessage(
 export async function updateMainMessage(
   handler: MessageHandler,
   channelId: string,
-  newContent: string
+  newContent: string,
+  buttons?: ActionButton[]
 ): Promise<void> {
   const stored = await getMainMessage(channelId);
 
@@ -100,43 +101,39 @@ export async function updateMainMessage(
     }
   }
 
-  // Send new message
-  const result = await handler.sendMessage(channelId, newContent);
-
-  // Store the new message
-  await setMainMessage(channelId, result.eventId, newContent);
-}
-
-/**
- * Update main message and interaction request
- * Sends the message, then sends interaction request with buttons if available
- * Deletes old interaction event before creating a new one
- */
-export async function updateMainMessageWithInteraction(
-  handler: MessageHandler,
-  channelId: string,
-  userId: string,
-  messageContent: string,
-  buttons: ActionButton[]
-): Promise<void> {
-  // Get existing message to check for old interaction event
-  const stored = await getMainMessage(channelId);
-
-  // Delete old interaction event if it exists
   if (stored?.interactionEventId) {
     try {
       await handler.removeEvent(channelId, stored.interactionEventId);
     } catch (error) {
-      console.error("Failed to delete old interaction event:", error);
+      console.error("Failed to delete previous interaction event:", error);
       // Continue anyway
     }
   }
 
-  // Always update the main message
-  await updateMainMessage(handler, channelId, messageContent);
+  // Send new message
+  const result = await handler.sendMessage(channelId, newContent);
 
-  // Send interaction request if there are buttons
-  if (buttons.length > 0) {
+  const form = createForm(buttons);
+  if (form) {
+    const interactionResult = await handler.sendInteractionRequest(channelId, {
+      case: "form",
+      value: form,
+    });
+    await setMainMessage(
+      channelId,
+      result.eventId,
+      newContent,
+      interactionResult.eventId
+    );
+  } else {
+    await setMainMessage(channelId, result.eventId, newContent);
+  }
+}
+
+function createForm(
+  buttons?: ActionButton[]
+): PlainMessage<InteractionRequest_Form> | undefined {
+  if (buttons && buttons.length > 0) {
     const components = buttons.map(
       (button) =>
         ({
@@ -157,43 +154,9 @@ export async function updateMainMessageWithInteraction(
       components,
     } satisfies PlainMessage<InteractionRequest_Form>;
 
-    try {
-      const interactionResult = await handler.sendInteractionRequest(
-        channelId,
-        {
-          recipient: Buffer.from(userId.replace(/^0x/, ""), "hex"),
-          content: {
-            case: "form",
-            value: form,
-          },
-        }
-      );
-
-      // Update the stored message with the interaction event ID
-      const currentStored = await getMainMessage(channelId);
-      if (currentStored) {
-        await setMainMessage(
-          channelId,
-          currentStored.messageId,
-          currentStored.messageContent,
-          interactionResult.eventId
-        );
-      }
-    } catch (error) {
-      console.error("Failed to send interaction request:", error);
-    }
-  } else {
-    // No buttons, so clear the interaction event ID
-    const currentStored = await getMainMessage(channelId);
-    if (currentStored) {
-      await setMainMessage(
-        channelId,
-        currentStored.messageId,
-        currentStored.messageContent,
-        undefined
-      );
-    }
+    return form;
   }
+  return undefined;
 }
 
 /**

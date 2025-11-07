@@ -5,7 +5,7 @@ import commands from "./commands";
 import { getOrCreateTown, isEngaged } from "./game/town-service";
 import { getCurrentTick } from "./game/game-state-service";
 import { renderMainMessage } from "./game/message-service";
-import { updateMainMessage } from "./game/main-message-service";
+import { InteractionRequest, PlainMessage } from "@towns-protocol/proto";
 
 const bot = await makeTownsBot(
   process.env.APP_PRIVATE_DATA!,
@@ -56,9 +56,7 @@ bot.onSlashCommand("engage", async (handler, event) => {
     const { getTownState } = await import("./game/town-state-service");
     const { hasPendingLevelUpRequest } = await import("./game/action-service");
     const { getActionButtons } = await import("./game/message-service");
-    const { updateMainMessageWithInteraction } = await import(
-      "./game/main-message-service"
-    );
+    const { updateMainMessage } = await import("./game/main-message-service");
 
     const townState = await getTownState(town, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
@@ -73,13 +71,24 @@ bot.onSlashCommand("engage", async (handler, event) => {
       currentTick
     );
 
-    await updateMainMessageWithInteraction(
-      handler,
-      channelId,
-      userId,
-      mainMessage,
-      buttons
-    );
+    const handlerWrapper = {
+      sendMessage: (channelId: string, message: string) => {
+        return handler.sendMessage(channelId, message);
+      },
+      removeEvent: (channelId: string, eventId: string) => {
+        return handler.adminRemoveEvent(channelId, eventId);
+      },
+      sendInteractionRequest: (
+        channelId: string,
+        request: PlainMessage<InteractionRequest["content"]>
+      ) => {
+        return handler.sendInteractionRequest(channelId, {
+          recipient: undefined,
+          content: request,
+        });
+      },
+    };
+    await updateMainMessage(handlerWrapper, channelId, mainMessage, buttons);
   } catch (error) {
     console.error("Error in /engage command:", error);
     await handler.sendMessage(
@@ -110,7 +119,24 @@ bot.onSlashCommand("quit", async (handler, event) => {
 
     // Delete the main message and interaction buttons
     const { deleteMainMessage } = await import("./game/main-message-service");
-    await deleteMainMessage(handler, channelId);
+    const handlerWrapper = {
+      sendMessage: (channelId: string, message: string) => {
+        return handler.sendMessage(channelId, message);
+      },
+      removeEvent: (channelId: string, eventId: string) => {
+        return handler.adminRemoveEvent(channelId, eventId);
+      },
+      sendInteractionRequest: (
+        channelId: string,
+        request: PlainMessage<InteractionRequest["content"]>
+      ) => {
+        return handler.sendInteractionRequest(channelId, {
+          recipient: undefined,
+          content: request,
+        });
+      },
+    };
+    await deleteMainMessage(handlerWrapper, channelId);
 
     // Delete the town from database (cascades to all related data)
     await deleteTown(userId);
@@ -374,9 +400,7 @@ bot.onTip(async (handler, event) => {
     const { getTownState } = await import("./game/town-state-service");
     const { hasPendingLevelUpRequest } = await import("./game/action-service");
     const { getActionButtons } = await import("./game/message-service");
-    const { updateMainMessageWithInteraction } = await import(
-      "./game/main-message-service"
-    );
+    const { updateMainMessage } = await import("./game/main-message-service");
 
     const townState = await getTownState(updatedTown, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(updatedTown.address);
@@ -391,13 +415,25 @@ bot.onTip(async (handler, event) => {
       currentTick
     );
 
-    await updateMainMessageWithInteraction(
-      handler,
-      channelId,
-      receiverAddress,
-      mainMessage,
-      buttons
-    );
+    const handlerWrapper = {
+      sendInteractionRequest: (
+        channelId: string,
+        request: PlainMessage<InteractionRequest["content"]>
+      ) => {
+        return handler.sendInteractionRequest(channelId, {
+          recipient: undefined,
+          content: request,
+        });
+      },
+      sendMessage: (channelId: string, message: string) => {
+        return handler.sendMessage(channelId, message);
+      },
+      removeEvent: (channelId: string, eventId: string) => {
+        return handler.adminRemoveEvent(channelId, eventId);
+      },
+    };
+
+    await updateMainMessage(handlerWrapper, channelId, mainMessage, buttons);
   } catch (error) {
     console.error("Error handling tip:", error);
     // Don't send error to channel - tip was still received

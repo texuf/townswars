@@ -84,15 +84,16 @@ export async function updateMainMessage(
   buttons?: ActionButton[]
 ): Promise<void> {
   const stored = await getMainMessage(channelId);
-  newContent = buttons
-    ? `${newContent}\n\nActions: ${buttons.length}` // this triggers a rerender
-    : newContent;
+  newContent =
+    buttons && buttons.length > 0
+      ? `${newContent}\n\nActions: ${buttons.length}` // this triggers a rerender
+      : newContent;
   // Check if message is different
   if (stored && !messagesAreDifferent(stored.messageContent, newContent)) {
     // Message hasn't changed, don't send
     return;
   }
-
+  console.log("newContent", newContent);
   // Delete previous message if it exists
   if (stored?.messageId) {
     try {

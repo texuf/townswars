@@ -25,15 +25,19 @@ async function renderPendingBattle(
     return `⚔️ Battle queued for next tick...`;
   }
 
-  return `⚔️ **PREPARING FOR BATTLE**
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**${town.name}** is preparing to attack **${enemy.name}**!
+⚔️  **PREPARING FOR BATTLE**
 
-🎯 **Target:** ${enemy.name} (Level ${enemy.level})
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏱️ **Status:** Your troops march to war...
+**${town.name}** vs **${enemy.name}**
 
-Battle begins next tick!`;
+    🏰 ⚔️ 🏰
+    YOU    ${enemy.name.slice(0, 8)}
+
+🎯 **Target:** Level ${enemy.level}
+⏱️ Battle begins next tick!`;
 }
 
 /**
@@ -53,15 +57,19 @@ async function renderBattleInProgressAttacker(
     return `⚔️ Battle in progress...`;
   }
 
-  return `⚔️ **ATTACKING ${enemy.name.toUpperCase()}**
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 **Target:** ${enemy.name} (Level ${enemy.level})
+⚔️  **ATTACKING ${enemy.name.toUpperCase()}**
 
-💰 **Potential Gain:** ${formatDollars(battle.reward)}
-⚠️ **At Risk:** ${formatDollars(battle.penalty)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏱️ **Time Remaining:** ${ticksRemaining} ticks (${secondsRemaining}s)
+   🏹→→→ 🏰
+   YOU   THEM
 
+💰 Gain: ${formatDollars(battle.reward)}
+⚠️ Risk: ${formatDollars(battle.penalty)}
+
+⏱️ ${ticksRemaining} ticks (${secondsRemaining}s)
 🎲 Your fate is being decided...`;
 }
 
@@ -82,16 +90,21 @@ async function renderBattleInProgressDefender(
     return `🛡️ Under attack...`;
   }
 
-  return `🛡️ **UNDER ATTACK**
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠️ **Attacker:** ${enemy.name} (Level ${enemy.level})
+🛡️  **UNDER ATTACK**
 
-💰 **Potential Gain:** ${formatDollars(battle.penalty)}
-⚠️ **At Risk:** ${formatDollars(battle.reward)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏱️ **Time Remaining:** ${ticksRemaining} ticks (${secondsRemaining}s)
+   🏰 ←←← 🏹
+   YOU   THEM
 
-🛡️ Your defenses are holding...`;
+⚠️ Attacker: ${enemy.name} (Lvl ${enemy.level})
+💰 Gain: ${formatDollars(battle.penalty)}
+⚠️ Risk: ${formatDollars(battle.reward)}
+
+⏱️ ${ticksRemaining} ticks (${secondsRemaining}s)
+🛡️ Defenses holding...`;
 }
 
 /**
@@ -113,50 +126,71 @@ async function renderBattleSummary(
     // Attacker won
     const actualReward = Math.floor((battle.reward * battle.percentage) / 100);
 
-    return `🎉 **VICTORY!**
+    return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉  **VICTORY!**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 You demolished **${enemyName}**!
 
-💰 **Gained:** ${formatDollars(actualReward)}
-🎯 **Damage:** ${battle.percentage}% of defenses destroyed
+    ⚔️
+   🏹 💥 🏰
 
-⚔️ Your troops have returned victorious!
+💰 Gained: ${formatDollars(actualReward)}
+🎯 Damage: ${battle.percentage}%
 
 _Your forces have proven their strength._`;
   } else if (isAttacker && !battle.success) {
     // Attacker lost
-    return `☠️ **DEFEAT**
+    return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-You lost the attack on **${enemyName}**
+☠️  **DEFEAT**
 
-💸 **Lost:** ${formatDollars(battle.penalty)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚔️ Your troops were destroyed.
+You lost attacking **${enemyName}**
+
+    💀
+   ☠️ 🛡️ 🏰
+
+💸 Lost: ${formatDollars(battle.penalty)}
 
 _Build up your forces and try again._`;
   } else if (!isAttacker && !battle.success) {
     // Defender won
-    return `🛡️ **DEFENDED!**
+    return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛡️  **DEFENDED!**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 You beat back **${enemyName}**!
 
-💰 **Gained:** ${formatDollars(battle.penalty)}
+    ⚔️
+   🏰 💥 ☠️
 
-🛡️ Your defenses held strong!
+💰 Gained: ${formatDollars(battle.penalty)}
 
 _Your enemies have been repelled._`;
   } else {
     // Defender lost
     const actualReward = Math.floor((battle.reward * battle.percentage) / 100);
 
-    return `⚠️ **BREACHED**
+    return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Your defenses were defeated by **${enemyName}**
+⚠️  **BREACHED**
 
-💸 **Lost:** ${formatDollars(actualReward)}
-🎯 **Damage:** ${battle.percentage}% of defenses destroyed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🛡️ You are now protected by battle cooldown.
+Your defenses fell to **${enemyName}**
+
+    💥
+   🏰 ⚔️ 🏹
+
+💸 Lost: ${formatDollars(actualReward)}
+🎯 Damage: ${battle.percentage}%
+🛡️ Battle cooldown active
 
 _Rebuild and strengthen your defenses._`;
   }
@@ -166,15 +200,22 @@ _Rebuild and strengthen your defenses._`;
  * Priority 8: New Level Up
  */
 function renderNewLevelUp(town: Town): string {
-  return `🏰 **TOWN UPGRADED!**
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**${town.name}** has reached **Level ${town.level}**!
+🏰  **TOWN UPGRADED!**
 
-✨ **New buildings and upgrades unlocked!**
-🛡️ **Shield activated!**
-💰 **Treasury bonus received!**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-_Your town grows in power and prestige._`;
+**${town.name}** → **Level ${town.level}**!
+
+    ✨
+   🏰⬆️🏰
+
+✨ New buildings unlocked!
+🛡️ Shield activated!
+💰 Treasury bonus received!
+
+_Your town grows in power._`;
 }
 
 // ============================================================================
@@ -215,7 +256,9 @@ export async function renderMainMessage(
     const levelUpText =
       town.level > 0 ? ` - Level ${town.level} → ${town.requestedLevel}` : "";
     return {
-      message: `**${town.name}**${levelUpText}
+      message: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**${town.name}**${levelUpText}
 
 **Treasury Approval Required**
 
@@ -246,12 +289,20 @@ Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`,
     const isAttacker = battle.attackerAddress === town.address;
     if (isAttacker) {
       return {
-        message: await renderBattleInProgressAttacker(town, battle, currentTick),
+        message: await renderBattleInProgressAttacker(
+          town,
+          battle,
+          currentTick
+        ),
         isSpecialMessage: true,
       };
     } else {
       return {
-        message: await renderBattleInProgressDefender(town, battle, currentTick),
+        message: await renderBattleInProgressDefender(
+          town,
+          battle,
+          currentTick
+        ),
         isSpecialMessage: true,
       };
     }
@@ -280,6 +331,7 @@ Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`,
   const lines: string[] = [];
 
   // Header
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
   lines.push(`🏰 **${town.name}** - Level ${town.level}`);
   lines.push("");
 

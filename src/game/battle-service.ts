@@ -327,6 +327,11 @@ export async function getBattleSuggestions(
       continue;
     }
 
+    // Skip towns at level 0 (awaiting approval)
+    if (target.level === 0) {
+      continue;
+    }
+
     // Check if target can be attacked
     const targetCanBeAttacked = await canBeAttacked(
       target.address,

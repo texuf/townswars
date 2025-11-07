@@ -10,10 +10,12 @@ import commands from "./commands";
 import { incrementTick, getCurrentTick } from "./game/game-state-service";
 import { getAllTowns } from "./game/town-service";
 import { cleanupAllExpired } from "./game/cleanup-service";
-import { getTownResources } from "./game/town-state-service";
+import { getTownState } from "./game/town-state-service";
 import { updateTownResourceRewards } from "./game/resource-service";
-import { renderMainMessage } from "./game/message-service";
-import { updateMainMessage } from "./game/main-message-service";
+import { renderMainMessage, getActionButtons } from "./game/message-service";
+import { updateMainMessageWithInteraction } from "./game/main-message-service";
+import { hasPendingLevelUpRequest, getPendingActions } from "./game/action-service";
+import { executePendingActions } from "./game/action-executor";
 
 async function tick() {
   const startTime = Date.now();
@@ -45,27 +47,57 @@ async function tick() {
     // 4. Process each town
     for (const town of towns) {
       try {
-        // a. Get town resources
-        const townResources = await getTownResources(town.address);
+        // a. Get town state
+        const townState = await getTownState(town, currentTick);
 
         // b. Update resource rewards (add rewardsPerTick to rewardsBank)
-        await updateTownResourceRewards(townResources, currentTick);
+        await updateTownResourceRewards(townState.resources, currentTick);
 
-        // c. TODO: Apply actions (Phase 2)
-        // - Level up requests
-        // - Level up approvals/cancellations
-        // - Resource purchases
-        // - Resource upgrades
-        // - Collect actions
-        // - Boost & shield purchases
+        // c. Apply actions (except battles)
+        const pendingActions = await getPendingActions(town.address, currentTick);
+        const { successful, failed } = await executePendingActions(
+          town,
+          pendingActions,
+          currentTick
+        );
+
+        // Log action results
+        for (const { action, result } of successful) {
+          console.log(`    ✓ ${town.name}: ${result.message}`);
+
+          // Send channel messages if any
+          if (result.channelMessage) {
+            await bot.sendMessage(town.channelId, result.channelMessage);
+          }
+
+          // TODO: Send global feed messages (Phase 2 completion)
+        }
+
+        for (const { action, result } of failed) {
+          console.log(`    ✗ ${town.name}: ${result.message}`);
+        }
 
         // d. TODO: Process battle requests (Phase 3)
 
         // e. TODO: Update battle suggestions (Phase 3)
 
-        // f. Update main message
-        const mainMessage = renderMainMessage(town, currentTick);
-        await updateMainMessage(bot, town.channelId, mainMessage);
+        // f. Update main message with interaction request
+        const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
+        // Refresh town state after actions
+        const refreshedState = await getTownState(town, currentTick);
+        const mainMessage = await renderMainMessage(
+          refreshedState,
+          currentTick,
+          pendingLevelUp
+        );
+        const buttons = await getActionButtons(refreshedState, pendingLevelUp);
+        await updateMainMessageWithInteraction(
+          bot,
+          town.channelId,
+          town.address,
+          mainMessage,
+          buttons
+        );
       } catch (error) {
         console.error(`  ✗ Error processing town ${town.name}:`, error);
         // Continue with next town

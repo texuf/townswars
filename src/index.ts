@@ -44,9 +44,18 @@ bot.onSlashCommand("engage", async (handler, event) => {
       `⚔️ Welcome to Towns Wars!\n\nYour town **${town.name}** has been founded!`
     );
 
-    // Send main message
-    const mainMessage = renderMainMessage(town, currentTick);
-    await updateMainMessage(handler, channelId, mainMessage);
+    // Send main message with interaction request
+    const { getTownState } = await import("./game/town-state-service");
+    const { hasPendingLevelUpRequest } = await import("./game/action-service");
+    const { getActionButtons } = await import("./game/message-service");
+    const { updateMainMessageWithInteraction } = await import("./game/main-message-service");
+
+    const townState = await getTownState(town, currentTick);
+    const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
+    const mainMessage = await renderMainMessage(townState, currentTick, pendingLevelUp);
+    const buttons = await getActionButtons(townState, pendingLevelUp);
+
+    await updateMainMessageWithInteraction(handler, channelId, userId, mainMessage, buttons);
   } catch (error) {
     console.error("Error in /engage command:", error);
     await handler.sendMessage(
@@ -74,6 +83,116 @@ bot.onSlashCommand("help", async (handler, { channelId }) => {
 bot.onSlashCommand("time", async (handler, { channelId }) => {
   const currentTime = new Date().toLocaleString();
   await handler.sendMessage(channelId, `Current time: ${currentTime} ⏰`);
+});
+
+// ============================================================================
+// INTERACTION RESPONSE HANDLER
+// ============================================================================
+
+bot.onInteractionResponse(async (handler, event) => {
+  const { userId, channelId, response } = event;
+
+  // Check if this is a form response
+  if (response.payload.content.case !== 'form') {
+    console.error("Expected form response, got:", response.payload.content.case);
+    return;
+  }
+
+  // Parse the button ID to determine the action
+  const form = response.payload.content.value;
+
+  // The clicked button's ID is in the first component of the response
+  const buttonId = form.components[0]?.id;
+
+  if (!buttonId) {
+    console.error("No button ID in interaction response");
+    return;
+  }
+
+  console.log(`Interaction response from ${userId}: ${buttonId}`);
+
+  try {
+    const { getTown } = await import("./game/town-service");
+    const { getCurrentTick } = await import("./game/game-state-service");
+    const {
+      queueBuyResource,
+      queueUpgradeResource,
+      queueCollect,
+      queueBoost,
+      queueShield,
+      queueLevelUpRequest,
+      queueLevelUpApproval,
+      queueLevelUpCancel,
+    } = await import("./game/action-service");
+
+    const town = await getTown(userId);
+    if (!town) {
+      await handler.sendMessage(channelId, "You need to `/engage` first!");
+      return;
+    }
+
+    const currentTick = await getCurrentTick();
+    const [action, ...params] = buttonId.split(":");
+
+    let confirmMessage = "";
+
+    switch (action) {
+      case "buy": {
+        if (params[0] === "shield") {
+          await queueShield(userId, currentTick + 1);
+          confirmMessage = "✓ Queued shield purchase for next tick";
+        } else if (params[0] === "boost") {
+          await queueBoost(userId, currentTick + 1);
+          confirmMessage = "✓ Queued boost purchase for next tick";
+        } else {
+          // Resource type
+          const resourceType = parseInt(params[0]);
+          await queueBuyResource(userId, currentTick + 1, resourceType);
+          confirmMessage = "✓ Queued resource purchase for next tick";
+        }
+        break;
+      }
+
+      case "upgrade": {
+        const resourceId = params[0];
+        await queueUpgradeResource(userId, currentTick + 1, resourceId);
+        confirmMessage = "✓ Queued resource upgrade for next tick";
+        break;
+      }
+
+      case "collect": {
+        const resourceId = params[0];
+        await queueCollect(userId, currentTick + 1, resourceId);
+        confirmMessage = "✓ Queued collection for next tick";
+        break;
+      }
+
+      case "levelup": {
+        if (params[0] === "request") {
+          await queueLevelUpRequest(userId, currentTick + 1);
+          confirmMessage = "✓ Queued level up request for next tick";
+        } else if (params[0] === "approve") {
+          await queueLevelUpApproval(userId, currentTick + 1);
+          confirmMessage = "✓ Queued level up approval for next tick";
+        } else if (params[0] === "cancel") {
+          await queueLevelUpCancel(userId, currentTick + 1);
+          confirmMessage = "✓ Queued level up cancellation for next tick";
+        }
+        break;
+      }
+
+      default:
+        console.error(`Unknown action: ${action}`);
+        return;
+    }
+
+    if (confirmMessage) {
+      await handler.sendMessage(channelId, confirmMessage);
+    }
+  } catch (error) {
+    console.error("Error handling interaction response:", error);
+    await handler.sendMessage(channelId, "❌ Failed to process action");
+  }
 });
 
 // ============================================================================
@@ -152,10 +271,19 @@ bot.onTip(async (handler, event) => {
       `💰 Tip received! +${coinsToAdd} coins added to your town.`
     );
 
-    // Update main message
+    // Update main message with interaction request
     const currentTick = await getCurrentTick();
-    const mainMessage = renderMainMessage(updatedTown, currentTick);
-    await updateMainMessage(handler, channelId, mainMessage);
+    const { getTownState } = await import("./game/town-state-service");
+    const { hasPendingLevelUpRequest } = await import("./game/action-service");
+    const { getActionButtons } = await import("./game/message-service");
+    const { updateMainMessageWithInteraction } = await import("./game/main-message-service");
+
+    const townState = await getTownState(updatedTown, currentTick);
+    const pendingLevelUp = await hasPendingLevelUpRequest(updatedTown.address);
+    const mainMessage = await renderMainMessage(townState, currentTick, pendingLevelUp);
+    const buttons = await getActionButtons(townState, pendingLevelUp);
+
+    await updateMainMessageWithInteraction(handler, channelId, receiverAddress, mainMessage, buttons);
   } catch (error) {
     console.error("Error handling tip:", error);
     // Don't send error to channel - tip was still received

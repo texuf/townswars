@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
 import { db, mainMessages, type MainMessage, type NewMainMessage } from "../db";
-import { messagesAreDifferent } from "./message-service";
+import { messagesAreDifferent, type ActionButton } from "./message-service";
 
 // Handler interface with methods we need
 interface MessageHandler {
   sendMessage: (channelId: string, message: string) => Promise<{ eventId: string }>;
   removeEvent: (channelId: string, eventId: string) => Promise<any>;
+  sendInteractionRequest: (channelId: string, request: any) => Promise<{ eventId: string }>;
 }
 
 /**
@@ -86,4 +87,49 @@ export async function updateMainMessage(
 
   // Store the new message
   await setMainMessage(channelId, result.eventId, newContent);
+}
+
+/**
+ * Update main message and interaction request
+ * Sends the message, then sends interaction request with buttons if available
+ */
+export async function updateMainMessageWithInteraction(
+  handler: MessageHandler,
+  channelId: string,
+  userId: string,
+  messageContent: string,
+  buttons: ActionButton[]
+): Promise<void> {
+  // Always update the main message
+  await updateMainMessage(handler, channelId, messageContent);
+
+  // Send interaction request if there are buttons
+  if (buttons.length > 0) {
+    const components = buttons.map((button) => ({
+      id: button.id,
+      component: {
+        button: {
+          label: button.label,
+        },
+      },
+    }));
+
+    const form = {
+      id: `town-actions-${Date.now()}`,
+      title: "Town Actions",
+      subtitle: "Select an action",
+      components,
+    };
+
+    try {
+      await handler.sendInteractionRequest(channelId, {
+        recipient: Buffer.from(userId.replace(/^0x/, ""), "hex"),
+        content: {
+          form,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to send interaction request:", error);
+    }
+  }
 }

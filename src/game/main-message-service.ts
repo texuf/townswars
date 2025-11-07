@@ -1,12 +1,24 @@
 import { eq } from "drizzle-orm";
 import { db, mainMessages, type MainMessage, type NewMainMessage } from "../db";
 import { messagesAreDifferent, type ActionButton } from "./message-service";
+import {
+  InteractionRequest,
+  InteractionRequest_Form,
+  InteractionRequest_Form_Component,
+  PlainMessage,
+} from "@towns-protocol/proto";
 
 // Handler interface with methods we need
 interface MessageHandler {
-  sendMessage: (channelId: string, message: string) => Promise<{ eventId: string }>;
+  sendMessage: (
+    channelId: string,
+    message: string
+  ) => Promise<{ eventId: string }>;
   removeEvent: (channelId: string, eventId: string) => Promise<any>;
-  sendInteractionRequest: (channelId: string, request: any) => Promise<{ eventId: string }>;
+  sendInteractionRequest: (
+    channelId: string,
+    request: PlainMessage<InteractionRequest>
+  ) => Promise<{ eventId: string }>;
 }
 
 /**
@@ -52,7 +64,10 @@ export async function setMainMessage(
       interactionEventId: interactionEventId || null,
       messageContent: content,
     };
-    const [inserted] = await db.insert(mainMessages).values(newMessage).returning();
+    const [inserted] = await db
+      .insert(mainMessages)
+      .values(newMessage)
+      .returning();
     return inserted;
   }
 }
@@ -122,29 +137,37 @@ export async function updateMainMessageWithInteraction(
 
   // Send interaction request if there are buttons
   if (buttons.length > 0) {
-    const components = buttons.map((button) => ({
-      id: button.id,
-      component: {
-        button: {
-          label: button.label,
-        },
-      },
-    }));
+    const components = buttons.map(
+      (button) =>
+        ({
+          id: button.id,
+          component: {
+            case: "button",
+            value: {
+              label: button.label,
+            },
+          },
+        } satisfies PlainMessage<InteractionRequest_Form_Component>)
+    );
 
     const form = {
       id: `town-actions-${Date.now()}`,
       title: "Town Actions",
       subtitle: "Select an action",
       components,
-    };
+    } satisfies PlainMessage<InteractionRequest_Form>;
 
     try {
-      const interactionResult = await handler.sendInteractionRequest(channelId, {
-        recipient: Buffer.from(userId.replace(/^0x/, ""), "hex"),
-        content: {
-          form,
-        },
-      });
+      const interactionResult = await handler.sendInteractionRequest(
+        channelId,
+        {
+          recipient: Buffer.from(userId.replace(/^0x/, ""), "hex"),
+          content: {
+            case: "form",
+            value: form,
+          },
+        }
+      );
 
       // Update the stored message with the interaction event ID
       const currentStored = await getMainMessage(channelId);

@@ -49,57 +49,57 @@ export const TOWN_LEVELS_TABLE: Record<number, TownLevel> = {
   },
   1: {
     approvedTreasuryBalance: 1000, // $10.00
-    coinAllocation: 1000,
+    coinAllocation: 300,
     boostCost: 100,
     boostMultiplier: 2,
-    boostDuration: 30, // 300 seconds (30 ticks * 10s)
-    boostCooldown: 50, // 500 seconds (50 ticks * 10s)
+    boostDuration: 3, // 30 seconds (30 ticks * 10s)
+    boostCooldown: 5, // 5 seconds (5 ticks * 1s)
     shieldCost: 100,
-    shieldDuration: 30, // 300 seconds (30 ticks * 10s)
-    shieldCooldown: 60, // 600 seconds (60 ticks * 10s)
-    cooldownTimeMin: 30, // 300 seconds
-    cooldownTimeMax: 60, // 600 seconds
+    shieldDuration: 3, // 30 seconds (3 ticks * 10s)
+    shieldCooldown: 6, // 6 seconds (6 ticks * 1s)
+    cooldownTimeMin: 3, // 3 seconds
+    cooldownTimeMax: 6, // 6 seconds
     hp: 100,
     attackCost: 50,
-    attackDuration: 10, // 100 seconds (10 ticks * 10s)
+    attackDuration: 1, // 1 second (1 tick * 1s)
     troopHp: 10,
     troopDps: 5,
     maxTroops: 50,
   },
   2: {
     approvedTreasuryBalance: 2500, // $25.00
-    coinAllocation: 2000,
+    coinAllocation: 350,
     boostCost: 200,
     boostMultiplier: 2,
-    boostDuration: 40, // 400 seconds
-    boostCooldown: 50,
+    boostDuration: 4, // 4 seconds
+    boostCooldown: 5,
     shieldCost: 200,
-    shieldDuration: 40,
-    shieldCooldown: 70,
-    cooldownTimeMin: 40,
-    cooldownTimeMax: 80,
+    shieldDuration: 4,
+    shieldCooldown: 7,
+    cooldownTimeMin: 4,
+    cooldownTimeMax: 8,
     hp: 150,
     attackCost: 75,
-    attackDuration: 12,
+    attackDuration: 2, // 2 seconds (2 ticks * 1s)
     troopHp: 15,
     troopDps: 8,
     maxTroops: 75,
   },
   3: {
     approvedTreasuryBalance: 5000, // $50.00
-    coinAllocation: 3000,
+    coinAllocation: 500,
     boostCost: 300,
     boostMultiplier: 2,
-    boostDuration: 50, // 500 seconds
-    boostCooldown: 50,
+    boostDuration: 5, // 5 seconds
+    boostCooldown: 5,
     shieldCost: 300,
-    shieldDuration: 50,
-    shieldCooldown: 80,
-    cooldownTimeMin: 50,
-    cooldownTimeMax: 100,
+    shieldDuration: 5,
+    shieldCooldown: 8,
+    cooldownTimeMin: 5,
+    cooldownTimeMax: 10,
     hp: 200,
     attackCost: 100,
-    attackDuration: 15,
+    attackDuration: 3, // 3 seconds (3 ticks * 1s)
     troopHp: 20,
     troopDps: 10,
     maxTroops: 100,

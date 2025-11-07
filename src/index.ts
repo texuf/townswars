@@ -21,11 +21,11 @@ const bot = await makeTownsBot(
 // ============================================================================
 
 bot.onSlashCommand("engage", async (handler, event) => {
-  const { userId, channelId, spaceId, eventId } = event;
+  const { channelId, spaceId, eventId } = event;
 
   try {
     // Check if already engaged
-    const alreadyEngaged = await isEngaged(userId);
+    const alreadyEngaged = await isEngaged(spaceId);
 
     if (alreadyEngaged) {
       await handler.sendMessage(
@@ -41,16 +41,10 @@ bot.onSlashCommand("engage", async (handler, event) => {
     // Create new town
     const currentTick = await getCurrentTick();
     const { town } = await getOrCreateTown(
-      userId,
+      spaceId,
       channelId,
       spaceId,
       currentTick
-    );
-
-    // Send confirmation message
-    await handler.sendMessage(
-      channelId,
-      `⚔️ Welcome to Towns Wars!\n\nYour town **${town.name}** has been founded!`
     );
 
     // Send main message with interaction request
@@ -100,12 +94,12 @@ bot.onSlashCommand("engage", async (handler, event) => {
 });
 
 bot.onSlashCommand("quit", async (handler, event) => {
-  const { userId, channelId, eventId } = event;
+  const { spaceId, channelId, eventId } = event;
 
   try {
     // Check if user has a town
     const { getTown, deleteTown } = await import("./game/town-service");
-    const town = await getTown(userId);
+    const town = await getTown(spaceId);
 
     if (!town) {
       await handler.sendMessage(
@@ -140,7 +134,7 @@ bot.onSlashCommand("quit", async (handler, event) => {
     await deleteMainMessage(handlerWrapper, channelId);
 
     // Delete the town from database (cascades to all related data)
-    await deleteTown(userId);
+    await deleteTown(spaceId);
 
     await sendGlobalFeedMessage(bot, `**${town.name}** has quit the game.`);
     // Send goodbye message
@@ -159,7 +153,7 @@ bot.onSlashCommand("quit", async (handler, event) => {
 // ============================================================================
 
 bot.onInteractionResponse(async (handler, event) => {
-  const { userId, channelId, response } = event;
+  const { spaceId, channelId, response } = event;
 
   // Check if this is a form response
   if (response.payload.content.case !== "form") {
@@ -181,7 +175,7 @@ bot.onInteractionResponse(async (handler, event) => {
     return;
   }
 
-  console.log(`Interaction response from ${userId}: ${buttonId}`);
+  console.log(`Interaction response from ${spaceId}: ${buttonId}`);
 
   try {
     const { getTown } = await import("./game/town-service");
@@ -198,7 +192,7 @@ bot.onInteractionResponse(async (handler, event) => {
       queueBattle,
     } = await import("./game/action-service");
 
-    const town = await getTown(userId);
+    const town = await getTown(spaceId);
     if (!town) {
       await handler.sendMessage(channelId, "You need to `/engage` first!");
       return;
@@ -212,15 +206,15 @@ bot.onInteractionResponse(async (handler, event) => {
     switch (action) {
       case "buy": {
         if (params[0] === "shield") {
-          await queueShield(userId, currentTick + 1);
+          await queueShield(spaceId, currentTick + 1);
           confirmMessage = "✓ Queued shield purchase for next tick";
         } else if (params[0] === "boost") {
-          await queueBoost(userId, currentTick + 1);
+          await queueBoost(spaceId, currentTick + 1);
           confirmMessage = "✓ Queued boost purchase for next tick";
         } else {
           // Resource type
           const resourceType = parseInt(params[0]);
-          await queueBuyResource(userId, currentTick + 1, resourceType);
+          await queueBuyResource(spaceId, currentTick + 1, resourceType);
           confirmMessage = "✓ Queued resource purchase for next tick";
         }
         break;
@@ -228,27 +222,27 @@ bot.onInteractionResponse(async (handler, event) => {
 
       case "upgrade": {
         const resourceId = params[0];
-        await queueUpgradeResource(userId, currentTick + 1, resourceId);
+        await queueUpgradeResource(spaceId, currentTick + 1, resourceId);
         confirmMessage = "✓ Queued resource upgrade for next tick";
         break;
       }
 
       case "collect": {
         const resourceId = params[0];
-        await queueCollect(userId, currentTick + 1, resourceId);
+        await queueCollect(spaceId, currentTick + 1, resourceId);
         confirmMessage = "✓ Queued collection for next tick";
         break;
       }
 
       case "levelup": {
         if (params[0] === "request") {
-          await queueLevelUpRequest(userId, currentTick + 1);
+          await queueLevelUpRequest(spaceId, currentTick + 1);
           confirmMessage = "✓ Queued level up request for next tick";
         } else if (params[0] === "approve") {
-          await queueLevelUpApproval(userId, currentTick + 1);
+          await queueLevelUpApproval(spaceId, currentTick + 1);
           confirmMessage = "✓ Queued level up approval for next tick";
         } else if (params[0] === "cancel") {
-          await queueLevelUpCancel(userId, currentTick + 1);
+          await queueLevelUpCancel(spaceId, currentTick + 1);
           confirmMessage = "✓ Queued level up cancellation for next tick";
         }
         break;
@@ -270,7 +264,7 @@ bot.onInteractionResponse(async (handler, event) => {
         }
 
         // Validate not attacking self
-        if (targetAddress === userId) {
+        if (targetAddress === spaceId) {
           await handler.sendMessage(
             channelId,
             "❌ You cannot attack yourself!"
@@ -299,7 +293,7 @@ bot.onInteractionResponse(async (handler, event) => {
           return;
         }
 
-        await queueBattle(userId, currentTick + 1, targetAddress);
+        await queueBattle(spaceId, currentTick + 1, targetAddress);
         confirmMessage = `⚔️ **Attack queued!**\n\nYour ${town.troops} troops will attack **${targetTown.name}** (Level ${targetTown.level}) next tick!`;
         break;
       }
@@ -323,10 +317,10 @@ bot.onInteractionResponse(async (handler, event) => {
 // ============================================================================
 
 bot.onMessage(async (handler, event) => {
-  const { message, channelId, eventId, createdAt, userId } = event;
+  const { message, spaceId, channelId, eventId, createdAt } = event;
 
   // If user is engaged, delete their messages in this channel
-  const engaged = await isEngaged(userId);
+  const engaged = await isEngaged(spaceId);
   if (engaged) {
     try {
       // Delete the user's message using admin permissions
@@ -367,11 +361,11 @@ bot.onReaction(async (handler, { reaction, channelId }) => {
 // ============================================================================
 
 bot.onTip(async (handler, event) => {
-  const { receiverAddress, amount, channelId } = event;
+  const { receiverAddress, spaceId, amount, channelId } = event;
 
   try {
     // Check if receiver is engaged
-    const engaged = await isEngaged(receiverAddress);
+    const engaged = await isEngaged(spaceId);
     if (!engaged) {
       // Not engaged, ignore tip for game purposes
       return;

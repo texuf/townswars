@@ -1,12 +1,17 @@
 import { eq } from "drizzle-orm";
 import { db, towns, type NewTown, type Town } from "../db";
 import { TOWN_LEVELS_TABLE } from "./static-data";
+import { parseAppPrivateData, townsEnv } from "@towns-protocol/sdk";
+import { LocalhostWeb3Provider, SpaceDapp } from "@towns-protocol/web3";
 
 /**
  * Get a town by address
  */
 export async function getTown(address: string): Promise<Town | undefined> {
-  const [town] = await db.select().from(towns).where(eq(towns.address, address));
+  const [town] = await db
+    .select()
+    .from(towns)
+    .where(eq(towns.address, address));
   return town;
 }
 
@@ -22,37 +27,24 @@ export async function getAllTowns(): Promise<Town[]> {
  * For MVP, we'll use a placeholder. In production, this would query the spaceDapp.
  */
 async function getTownNameFromSpace(spaceId: string): Promise<string> {
-  // TODO: Implement actual spaceDapp lookup
-  // For now, generate a random town name
-  const adjectives = [
-    "Ancient",
-    "Golden",
-    "Iron",
-    "Crystal",
-    "Shadow",
-    "Thunder",
-    "Mystic",
-    "Dragon",
-    "Phoenix",
-    "Silver",
-  ];
-  const nouns = [
-    "Fortress",
-    "Haven",
-    "Keep",
-    "Citadel",
-    "Stronghold",
-    "Vale",
-    "Peak",
-    "Harbor",
-    "Ridge",
-    "Gate",
-  ];
+  // make the config
+  const appPrivateData = process.env.APP_PRIVATE_DATA!;
+  const { env } = parseAppPrivateData(appPrivateData);
+  const config = townsEnv().makeTownsConfig(env);
 
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  // make a space dapp
+  const spaceDapp = new SpaceDapp(
+    config.base.chainConfig,
+    new LocalhostWeb3Provider(config.base.rpcUrl)
+  );
 
-  return `${adjective} ${noun}`;
+  try {
+    const space = await spaceDapp.getSpaceInfo(spaceId);
+    return space?.name || "Unknown";
+  } catch (error) {
+    console.error(`Error getting town name from space: ${error}`);
+    return "Unknown";
+  }
 }
 
 /**
@@ -148,7 +140,10 @@ export async function addCoins(address: string, amount: number): Promise<Town> {
 /**
  * Add troops to a town (respecting maxTroops)
  */
-export async function addTroops(address: string, amount: number): Promise<Town> {
+export async function addTroops(
+  address: string,
+  amount: number
+): Promise<Town> {
   const town = await getTown(address);
   if (!town) {
     throw new Error(`Town not found: ${address}`);

@@ -45,10 +45,13 @@ bun run docker:up
 # 5. Push database schema
 bun run db:push
 
-# 6. Start the bot server
+# 6. Apply database indexes (for performance)
+bun run db:indexes
+
+# 7. Start the bot server
 bun run dev
 
-# 7. In another terminal, start the tick system
+# 8. In another terminal, start the tick system
 bun run tick:watch
 ```
 
@@ -183,6 +186,7 @@ bun run tick:watch       # Run tick system continuously (every 10s)
 bun run docker:up        # Start PostgreSQL in Docker
 bun run docker:down      # Stop PostgreSQL container
 bun run db:push          # Push schema changes to database
+bun run db:indexes       # Apply performance indexes
 bun run db:studio        # Open Drizzle Studio (database GUI)
 
 # Testing

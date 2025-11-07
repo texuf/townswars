@@ -40,7 +40,7 @@ Pre-launch checklist to ensure Towns Wars is ready for production deployment.
 - [ ] Production database provisioned
 - [ ] Database connection string configured
 - [ ] Schema pushed to production (`bun run db:push`)
-- [ ] Indexes applied (run `drizzle/add-indexes.sql`)
+- [ ] Indexes applied (`bun run db:indexes`)
 - [ ] Database backups configured
 - [ ] Connection pooling configured
 - [ ] Database monitoring enabled

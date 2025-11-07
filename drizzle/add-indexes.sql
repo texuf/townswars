@@ -20,18 +20,17 @@ CREATE INDEX IF NOT EXISTS idx_actions_town_tick ON actions(town_address, tick);
 -- Battles table indexes
 CREATE INDEX IF NOT EXISTS idx_battles_attacker ON battles(attacker_address);
 CREATE INDEX IF NOT EXISTS idx_battles_defender ON battles(defender_address);
-CREATE INDEX IF NOT EXISTS idx_battles_end ON battles(end);
+CREATE INDEX IF NOT EXISTS idx_battles_end ON battles("end");
 CREATE INDEX IF NOT EXISTS idx_battles_cooldown_end ON battles(cooldown_end);
-CREATE INDEX IF NOT EXISTS idx_battles_active ON battles(end) WHERE end > (SELECT current_tick FROM game_state LIMIT 1);
 
 -- Shields table indexes
 CREATE INDEX IF NOT EXISTS idx_shields_town_address ON shields(town_address);
-CREATE INDEX IF NOT EXISTS idx_shields_end ON shields(end);
+CREATE INDEX IF NOT EXISTS idx_shields_end ON shields("end");
 CREATE INDEX IF NOT EXISTS idx_shields_cooldown_end ON shields(cooldown_end);
 
 -- Boosts table indexes
 CREATE INDEX IF NOT EXISTS idx_boosts_town_address ON boosts(town_address);
-CREATE INDEX IF NOT EXISTS idx_boosts_end ON boosts(end);
+CREATE INDEX IF NOT EXISTS idx_boosts_end ON boosts("end");
 CREATE INDEX IF NOT EXISTS idx_boosts_cooldown_end ON boosts(cooldown_end);
 
 -- Main messages table indexes

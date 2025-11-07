@@ -76,11 +76,18 @@ This document summarizes all improvements made during the final polish phase of 
 - ✅ Towns table: address, channel_id, level
 - ✅ Resources table: town_address, type, composite index
 - ✅ Actions table: town_address, tick, type, composite index
-- ✅ Battles table: attacker, defender, end, cooldown_end, active battles
+- ✅ Battles table: attacker, defender, end, cooldown_end
 - ✅ Shields table: town_address, end, cooldown_end
 - ✅ Boosts table: town_address, end, cooldown_end
 - ✅ Main messages table: channel_id
 - ✅ Town errors table: town_address, tick
+
+### Database Index Script (`scripts/apply-indexes.ts`)
+- ✅ Cross-platform TypeScript script to apply indexes
+- ✅ Automatically loads .env with Bun
+- ✅ Proper error handling and user feedback
+- ✅ Handles "already exists" errors gracefully
+- ✅ Run with: `bun run db:indexes`
 
 ## Code Quality
 
@@ -144,14 +151,16 @@ Make sure the address is correct and the town has joined the game."
 ## Files Modified
 
 ### New Files:
-- `src/game/error-service.ts` (66 lines)
-- `drizzle/add-indexes.sql` (43 lines)
-- `LAUNCH_CHECKLIST.md` (431 lines)
-- `AGENTS.md` (414 lines)
-- `IMPROVEMENTS_SUMMARY.md` (this file)
+- `src/game/error-service.ts` (65 lines) - Error logging service
+- `scripts/apply-indexes.ts` (77 lines) - Database index application script
+- `drizzle/add-indexes.sql` (42 lines) - SQL index definitions
+- `LAUNCH_CHECKLIST.md` (431 lines) - Pre-launch checklist
+- `AGENTS.md` (414 lines) - AI agent development guide
+- `IMPROVEMENTS_SUMMARY.md` (this file) - Summary of improvements
 
 ### Modified Files:
 - `README.md` (completely rewritten, 437 lines)
+- `package.json` (added `db:indexes` script)
 - `src/game/action-executor.ts` (added error logging)
 - `src/game/command-handlers.ts` (improved error messages)
 - `src/tick.ts` (added error logging)

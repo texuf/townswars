@@ -156,15 +156,21 @@ docker exec townswars-postgres psql -U townswars -d townswars -c "SELECT address
 Copy Town B's address (starts with `0x...`)
 
 #### Step 2: Queue Attack
-```
-Channel A: /attack <Town-B-address>
-```
+
+**In Channel A**, click one of the attack buttons in your main message display.
+
+The button will look like: **[Attack TownName (lvl 1)]**
+
+**Alternative** (if no attack buttons appear):
+- Make sure you have troops (collect from barracks)
+- Make sure you have enough coins (>= 50)
+- Attack buttons show up to 3 random attackable targets
 
 **Expected**: Confirmation message
 ```
-✓ Queued attack on [Town B Name] for next tick
+⚔️ Attack queued!
 
-⚔️ Your 10 troops will attack their defenses!
+Your 10 troops will attack [Town B Name] (Level 1) next tick!
 ```
 
 #### Step 3: Check Main Message (before next tick)
@@ -393,16 +399,17 @@ Both towns should return to **standard display**:
 After a battle ends, both towns are in cooldown.
 
 **Try to attack again immediately**:
-```
-Channel A: /attack <Town-B-address>
-```
+
+Look at your main message in Channel A. The attack buttons should **not be visible** because you're in battle cooldown.
+
+If you somehow queue another attack (via database manipulation), the tick system will reject it:
 
 **Expected in console logs**:
 ```
 ✗ [Town A]: Cannot attack [Town B] (shielded or in battle)
 ```
 
-The attack should **not** create a battle.
+The attack action will **not** create a new battle.
 
 ✅ **Test Result**: _______________________
 

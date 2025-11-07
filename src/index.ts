@@ -85,11 +85,6 @@ bot.onSlashCommand("time", async (handler, { channelId }) => {
   await handler.sendMessage(channelId, `Current time: ${currentTime} ⏰`);
 });
 
-bot.onSlashCommand("attack", async (handler, event) => {
-  const { handleAttack } = await import("./game/command-handlers");
-  await handleAttack(handler, event.userId, event.channelId, event.args);
-});
-
 // ============================================================================
 // INTERACTION RESPONSE HANDLER
 // ============================================================================
@@ -189,8 +184,51 @@ bot.onInteractionResponse(async (handler, event) => {
 
       case "attack": {
         const targetAddress = params[0];
+
+        // Validate target exists
+        const { getTown } = await import("./game/town-service");
+        const targetTown = await getTown(targetAddress);
+
+        if (!targetTown) {
+          await handler.sendMessage(
+            channelId,
+            "❌ Target town not found. They may have left the game."
+          );
+          return;
+        }
+
+        // Validate not attacking self
+        if (targetAddress === userId) {
+          await handler.sendMessage(
+            channelId,
+            "❌ You cannot attack yourself!"
+          );
+          return;
+        }
+
+        // Validate can afford attack
+        const { TOWN_LEVELS_TABLE } = await import("./game/static-data");
+        const townLevel = TOWN_LEVELS_TABLE[town.level];
+
+        if (!townLevel || town.coins < townLevel.attackCost) {
+          await handler.sendMessage(
+            channelId,
+            `❌ Not enough coins! Need ${townLevel?.attackCost || 0} coins.`
+          );
+          return;
+        }
+
+        // Validate has troops
+        if (town.troops === 0) {
+          await handler.sendMessage(
+            channelId,
+            "❌ You need troops to attack! Build barracks and collect troops first."
+          );
+          return;
+        }
+
         await queueBattle(userId, currentTick + 1, targetAddress);
-        confirmMessage = "⚔️ Queued attack for next tick";
+        confirmMessage = `⚔️ **Attack queued!**\n\nYour ${town.troops} troops will attack **${targetTown.name}** (Level ${targetTown.level}) next tick!`;
         break;
       }
 

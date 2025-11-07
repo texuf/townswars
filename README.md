@@ -79,9 +79,10 @@ Build Resources → Collect Rewards → Train Troops → Attack Towns → Win Tr
 ### Commands
 
 - `/engage` - Join the game and create your town
-- `/attack <address>` - Attack another town (or use attack buttons)
 - `/help` - Show help information
 - `/time` - Show current server time
+
+**Note**: Attacks are initiated using the attack buttons in your main message display, not slash commands.
 
 ### Resources
 
@@ -96,8 +97,8 @@ Build Resources → Collect Rewards → Train Troops → Attack Towns → Win Tr
 **Attacking**:
 1. Collect troops from barracks
 2. Have enough coins for attack cost (50 at level 1)
-3. Click an attack button or use `/attack <address>`
-4. Battle resolves automatically over multiple ticks
+3. Click one of the attack buttons shown in your main message
+4. Battle resolves automatically over multiple ticks (10 ticks = 100 seconds)
 5. Win treasury from enemies or lose your penalty stake
 
 **Defending**:

@@ -39,11 +39,14 @@ Pre-launch checklist to ensure Towns Wars is ready for production deployment.
 ### Database Setup
 - [ ] Production database provisioned
 - [ ] Database connection string configured
-- [ ] Schema pushed to production (`bun run db:push`)
+- [ ] **Initial setup**: Schema migrated to production (`bun run db:migrate`)
+- [ ] **If no migrations exist yet**: Generate initial migration (`bun run db:generate` locally, then `bun run db:migrate` on production)
 - [ ] Indexes applied (`bun run db:indexes`)
 - [ ] Database backups configured
 - [ ] Connection pooling configured
 - [ ] Database monitoring enabled
+
+**⚠️ Important**: Never use `db:push` in production! Always use `db:generate` + `db:migrate` for production schema changes.
 
 ### Database Verification
 ```bash

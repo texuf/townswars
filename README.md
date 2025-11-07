@@ -200,6 +200,31 @@ bun run build            # Build for production
 
 ### Database Management
 
+#### Development vs Production
+
+**Development** (current setup):
+```bash
+# Edit src/db/schema.ts, then:
+bun run db:push        # Directly sync schema (fast, no migrations)
+bun run db:indexes     # Apply performance indexes
+```
+
+**Production** (recommended):
+```bash
+# 1. Edit src/db/schema.ts
+# 2. Generate migration file:
+bun run db:generate    # Creates SQL file in drizzle/
+
+# 3. Review generated SQL, commit to git
+# 4. On production server:
+bun run db:migrate     # Apply migrations safely
+bun run db:indexes     # Apply performance indexes
+```
+
+**Why the difference?**
+- `db:push` = Fast but can lose data (dev only)
+- `db:generate` + `db:migrate` = Safe, versioned, reviewable (production)
+
 **View data**:
 ```bash
 # Open Drizzle Studio
@@ -345,11 +370,15 @@ PORT=5123
 
 - [ ] Database is persistent (not Docker local)
 - [ ] Environment variables configured
+- [ ] **Database schema migrated** (`bun run db:generate` locally, `bun run db:migrate` on server)
+- [ ] **Database indexes applied** (`bun run db:indexes`)
 - [ ] Bot server running (`bun run start`)
 - [ ] Tick system running (cron job or service)
 - [ ] Database backups configured
 - [ ] Error monitoring enabled
 - [ ] Performance monitoring enabled
+
+**⚠️ Never use `db:push` in production!** It can cause data loss. Always use the migration workflow.
 
 ### Tick System in Production
 

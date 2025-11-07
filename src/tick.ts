@@ -8,14 +8,21 @@
 import { makeTownsBot } from "@towns-protocol/bot";
 import commands from "./commands";
 import { incrementTick, getCurrentTick } from "./game/game-state-service";
-import { getAllTowns } from "./game/town-service";
+import { getAllTowns, getTown, updateTown } from "./game/town-service";
 import { cleanupAllExpired } from "./game/cleanup-service";
-import { getTownState } from "./game/town-state-service";
+import { getTownState, getTownResources, canBeAttacked } from "./game/town-state-service";
 import { updateTownResourceRewards } from "./game/resource-service";
 import { renderMainMessage, getActionButtons } from "./game/message-service";
 import { updateMainMessageWithInteraction } from "./game/main-message-service";
 import { hasPendingLevelUpRequest, getPendingActions } from "./game/action-service";
 import { executePendingActions } from "./game/action-executor";
+import {
+  createBattle,
+  resolveBattle,
+  getBattleEndingAtTick,
+} from "./game/battle-service";
+import { sendGlobalFeedMessage } from "./game/feed-service";
+import { ActionType, formatDollars } from "./game/static-data";
 
 async function tick() {
   const startTime = Date.now();
@@ -70,18 +77,131 @@ async function tick() {
             await bot.sendMessage(town.channelId, result.channelMessage);
           }
 
-          // TODO: Send global feed messages (Phase 2 completion)
+          // Send global feed messages if any
+          if (result.feedMessage) {
+            await sendGlobalFeedMessage(bot, result.feedMessage);
+          }
         }
 
         for (const { action, result } of failed) {
           console.log(`    ✗ ${town.name}: ${result.message}`);
         }
 
-        // d. TODO: Process battle requests (Phase 3)
+        // d. Process battle requests (Phase 3)
+        const battleActions = pendingActions.filter(
+          (a) => a.type === ActionType.Battle
+        );
 
-        // e. TODO: Update battle suggestions (Phase 3)
+        for (const battleAction of battleActions) {
+          try {
+            const targetAddress = (battleAction.data as any).targetAddress;
+            const targetTown = await getTown(targetAddress);
 
-        // f. Update main message with interaction request
+            if (!targetTown) {
+              console.log(
+                `    ✗ ${town.name}: Battle target not found: ${targetAddress}`
+              );
+              continue;
+            }
+
+            // Check if target can be attacked
+            const targetCanBeAttacked = await canBeAttacked(
+              targetAddress,
+              currentTick
+            );
+
+            if (!targetCanBeAttacked) {
+              console.log(
+                `    ✗ ${town.name}: Cannot attack ${targetTown.name} (shielded or in battle)`
+              );
+              continue;
+            }
+
+            // Get target resources for battle calculation
+            const targetResources = await getTownResources(targetAddress);
+
+            // Create battle (calculates outcome immediately)
+            const battle = await createBattle(
+              town.address,
+              targetAddress,
+              town,
+              targetTown,
+              targetResources,
+              currentTick
+            );
+
+            // Reset attacker troops to 0
+            await updateTown(town.address, { troops: 0 });
+
+            // Send global feed message
+            await sendGlobalFeedMessage(
+              bot,
+              `${town.name} is attacking ${targetTown.name} (potential gain: ${formatDollars(battle.reward)}, at risk: ${formatDollars(battle.penalty)})`
+            );
+
+            console.log(
+              `    ⚔️ ${town.name} attacks ${targetTown.name} (ends at tick ${battle.end})`
+            );
+          } catch (error) {
+            console.error(
+              `    ✗ Error processing battle for ${town.name}:`,
+              error
+            );
+          }
+        }
+
+        // e. Check for battle resolution
+        const endingBattle = await getBattleEndingAtTick(
+          town.address,
+          currentTick
+        );
+
+        if (endingBattle) {
+          try {
+            // Get attacker and defender
+            const attackerTown = await getTown(endingBattle.attackerAddress);
+            const defenderTown = await getTown(endingBattle.defenderAddress);
+
+            if (attackerTown && defenderTown) {
+              // Resolve battle (transfer treasury)
+              await resolveBattle(endingBattle, attackerTown, defenderTown);
+
+              // Send global feed messages based on outcome
+              if (endingBattle.success) {
+                const actualReward = Math.floor(
+                  (endingBattle.reward * endingBattle.percentage) / 100
+                );
+
+                await sendGlobalFeedMessage(
+                  bot,
+                  `${attackerTown.name} demolished ${defenderTown.name}, gained ${formatDollars(actualReward)}`
+                );
+
+                console.log(
+                  `    🏆 ${attackerTown.name} won battle vs ${defenderTown.name}`
+                );
+              } else {
+                await sendGlobalFeedMessage(
+                  bot,
+                  `${defenderTown.name} beat back ${attackerTown.name}, gained ${formatDollars(endingBattle.penalty)}`
+                );
+
+                console.log(
+                  `    🛡️ ${defenderTown.name} defended vs ${attackerTown.name}`
+                );
+              }
+            }
+          } catch (error) {
+            console.error(
+              `    ✗ Error resolving battle for ${town.name}:`,
+              error
+            );
+          }
+        }
+
+        // f. TODO: Update battle suggestions (Phase 3)
+
+        // g. Update main message with interaction request
         const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
         // Refresh town state after actions
         const refreshedState = await getTownState(town, currentTick);

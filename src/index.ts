@@ -85,6 +85,11 @@ bot.onSlashCommand("time", async (handler, { channelId }) => {
   await handler.sendMessage(channelId, `Current time: ${currentTime} ⏰`);
 });
 
+bot.onSlashCommand("attack", async (handler, event) => {
+  const { handleAttack } = await import("./game/command-handlers");
+  await handleAttack(handler, event.userId, event.channelId, event.args);
+});
+
 // ============================================================================
 // INTERACTION RESPONSE HANDLER
 // ============================================================================
@@ -123,6 +128,7 @@ bot.onInteractionResponse(async (handler, event) => {
       queueLevelUpRequest,
       queueLevelUpApproval,
       queueLevelUpCancel,
+      queueBattle,
     } = await import("./game/action-service");
 
     const town = await getTown(userId);
@@ -178,6 +184,13 @@ bot.onInteractionResponse(async (handler, event) => {
           await queueLevelUpCancel(userId, currentTick + 1);
           confirmMessage = "✓ Queued level up cancellation for next tick";
         }
+        break;
+      }
+
+      case "attack": {
+        const targetAddress = params[0];
+        await queueBattle(userId, currentTick + 1, targetAddress);
+        confirmMessage = "⚔️ Queued attack for next tick";
         break;
       }
 

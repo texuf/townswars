@@ -14,8 +14,9 @@ import {
   queueLevelUpRequest,
   queueLevelUpApproval,
   queueLevelUpCancel,
+  queueBattle,
 } from "./action-service";
-import { RESOURCE_DEFINITIONS_TABLE, RESOURCE_LIMITS_TABLE } from "./static-data";
+import { RESOURCE_DEFINITIONS_TABLE, RESOURCE_LIMITS_TABLE, TOWN_LEVELS_TABLE } from "./static-data";
 
 /**
  * Handle /buy command
@@ -329,5 +330,71 @@ export async function handleCancelLevelUp(
   await handler.sendMessage(
     channelId,
     "✓ Queued level up cancellation for next tick"
+  );
+}
+
+/**
+ * Handle /attack command
+ */
+export async function handleAttack(
+  handler: BotHandler,
+  userId: string,
+  channelId: string,
+  args: string[]
+): Promise<void> {
+  const town = await getTown(userId);
+  if (!town) {
+    await handler.sendMessage(channelId, "You need to `/engage` first!");
+    return;
+  }
+
+  const targetAddress = args[0];
+  if (!targetAddress) {
+    await handler.sendMessage(
+      channelId,
+      "Usage: `/attack <target-address>`\n\nExample: `/attack 0x1234...`"
+    );
+    return;
+  }
+
+  // Validate target exists
+  const targetTown = await getTown(targetAddress);
+  if (!targetTown) {
+    await handler.sendMessage(channelId, `Town not found: ${targetAddress}`);
+    return;
+  }
+
+  // Check if trying to attack self
+  if (targetAddress === userId) {
+    await handler.sendMessage(channelId, "You cannot attack yourself!");
+    return;
+  }
+
+  // Check if can afford attack
+  const townLevel = TOWN_LEVELS_TABLE[town.level];
+  if (town.coins < townLevel.attackCost) {
+    await handler.sendMessage(
+      channelId,
+      `Not enough coins! Need ${townLevel.attackCost}, have ${town.coins}`
+    );
+    return;
+  }
+
+  // Check if have troops
+  if (town.troops === 0) {
+    await handler.sendMessage(
+      channelId,
+      "You need troops to attack! Build barracks and collect troops first."
+    );
+    return;
+  }
+
+  // Queue battle action for next tick
+  const currentTick = await getCurrentTick();
+  await queueBattle(userId, currentTick + 1, targetAddress);
+
+  await handler.sendMessage(
+    channelId,
+    `✓ Queued attack on ${targetTown.name} for next tick\n\n⚔️ Your ${town.troops} troops will attack their defenses!`
   );
 }

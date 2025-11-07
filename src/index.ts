@@ -80,7 +80,22 @@ bot.onSlashCommand("time", async (handler, { channelId }) => {
 // MESSAGE HANDLERS
 // ============================================================================
 
-bot.onMessage(async (handler, { message, channelId, eventId, createdAt }) => {
+bot.onMessage(async (handler, event) => {
+  const { message, channelId, eventId, createdAt, userId } = event;
+
+  // If user is engaged, delete their messages in this channel
+  const engaged = await isEngaged(userId);
+  if (engaged) {
+    try {
+      // Delete the user's message using admin permissions
+      await handler.adminRemoveEvent(channelId, eventId);
+    } catch (error) {
+      console.error("Error deleting engaged user message:", error);
+    }
+    return;
+  }
+
+  // Handle test commands for non-engaged users
   if (message.includes("hello")) {
     await handler.sendMessage(channelId, "Hello there! 👋");
     return;
@@ -102,6 +117,48 @@ bot.onMessage(async (handler, { message, channelId, eventId, createdAt }) => {
 bot.onReaction(async (handler, { reaction, channelId }) => {
   if (reaction === "👋") {
     await handler.sendMessage(channelId, "I saw your wave! 👋");
+  }
+});
+
+// ============================================================================
+// TIP HANDLER
+// ============================================================================
+
+bot.onTip(async (handler, event) => {
+  const { receiverAddress, amount, channelId } = event;
+
+  try {
+    // Check if receiver is engaged
+    const engaged = await isEngaged(receiverAddress);
+    if (!engaged) {
+      // Not engaged, ignore tip for game purposes
+      return;
+    }
+
+    // Convert ETH amount (in wei) to ETH
+    const ethAmount = Number(amount) / 1e18;
+
+    // Convert to coins using conversion function
+    const { tipToCoins } = await import("./game/static-data");
+    const coinsToAdd = tipToCoins(ethAmount);
+
+    // Add coins to town
+    const { addCoins } = await import("./game/town-service");
+    const updatedTown = await addCoins(receiverAddress, coinsToAdd);
+
+    // Send notification
+    await handler.sendMessage(
+      channelId,
+      `💰 Tip received! +${coinsToAdd} coins added to your town.`
+    );
+
+    // Update main message
+    const currentTick = await getCurrentTick();
+    const mainMessage = renderMainMessage(updatedTown, currentTick);
+    await updateMainMessage(handler, channelId, mainMessage);
+  } catch (error) {
+    console.error("Error handling tip:", error);
+    // Don't send error to channel - tip was still received
   }
 });
 const { jwtMiddleware, handler } = bot.start();

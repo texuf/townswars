@@ -11,6 +11,13 @@ export async function getTown(address: string): Promise<Town | undefined> {
 }
 
 /**
+ * Get all towns
+ */
+export async function getAllTowns(): Promise<Town[]> {
+  return db.select().from(towns);
+}
+
+/**
  * Get town name from space ID using spaceDapp instance
  * For MVP, we'll use a placeholder. In production, this would query the spaceDapp.
  */

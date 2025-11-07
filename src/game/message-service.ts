@@ -60,7 +60,10 @@ async function renderBattleInProgressAttacker(
   }
 
   return `╔═══════════════════════════════════════════════╗
-║        ⚔️  ATTACKING ${enemy.name.toUpperCase().slice(0, 15).padEnd(15)}  ⚔️        ║
+║        ⚔️  ATTACKING ${enemy.name
+    .toUpperCase()
+    .slice(0, 15)
+    .padEnd(15)}  ⚔️        ║
 ╚═══════════════════════════════════════════════╝
 
      🏹🏹🏹              🏰
@@ -129,9 +132,7 @@ async function renderBattleSummary(
 
   if (isAttacker && battle.success) {
     // Attacker won
-    const actualReward = Math.floor(
-      (battle.reward * battle.percentage) / 100
-    );
+    const actualReward = Math.floor((battle.reward * battle.percentage) / 100);
 
     return `╔═══════════════════════════════════════════════╗
 ║            🎉  VICTORY!  🎉                   ║
@@ -185,9 +186,7 @@ You beat back **${enemyName}**!
 _Your enemies have been repelled._`;
   } else {
     // Defender lost
-    const actualReward = Math.floor(
-      (battle.reward * battle.percentage) / 100
-    );
+    const actualReward = Math.floor((battle.reward * battle.percentage) / 100);
 
     return `╔═══════════════════════════════════════════════╗
 ║           ⚠️  BREACHED  ⚠️                    ║
@@ -242,7 +241,20 @@ export async function renderMainMessage(
   currentTick: number,
   hasPendingLevelUpRequest: boolean
 ): Promise<string> {
-  const { town, resources, shield, boost, battle, battleActive, battleSummary, battleCooldown, shieldActive, shieldCooldown, boostActive, boostCooldown } = townState;
+  const {
+    town,
+    resources,
+    shield,
+    boost,
+    battle,
+    battleActive,
+    battleSummary,
+    battleCooldown,
+    shieldActive,
+    shieldCooldown,
+    boostActive,
+    boostCooldown,
+  } = townState;
   const townLevel = TOWN_LEVELS_TABLE[town.level];
 
   // Check if town needs level approval
@@ -252,22 +264,22 @@ export async function renderMainMessage(
       nextLevelData?.approvedTreasuryBalance || 0
     );
 
-    return `🏰 **${town.name}** - Level ${town.level} → ${town.requestedLevel}
+    const levelUpText =
+      town.level > 0 ? ` - Level ${town.level} → ${town.requestedLevel}` : "";
+    return `**${town.name}**${levelUpText}
 
-📋 **Treasury Approval Required**
+**Treasury Approval Required**
 
-To upgrade your town to level ${town.requestedLevel}, you need to approve the Towns Bot to withdraw up to ${approvalAmount} from your treasury.
-
-This is a one-time approval for this level upgrade.
-
-Use the buttons below to approve or cancel.`;
+Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`;
   }
 
   // Check for pending battle action
   const { getPendingActions } = await import("./action-service");
   const { ActionType } = await import("./static-data");
   const pendingActions = await getPendingActions(town.address, currentTick);
-  const pendingBattle = pendingActions.find((a) => a.type === ActionType.Battle);
+  const pendingBattle = pendingActions.find(
+    (a) => a.type === ActionType.Battle
+  );
 
   // Priority 1: Pending Battle
   if (pendingBattle) {
@@ -346,7 +358,8 @@ Use the buttons below to approve or cancel.`;
 
   // Status indicators
   const statuses: string[] = [];
-  if (boostActive) statuses.push(`🚀 Boost active (${townLevel?.boostMultiplier}x)`);
+  if (boostActive)
+    statuses.push(`🚀 Boost active (${townLevel?.boostMultiplier}x)`);
   if (shieldActive) statuses.push("🛡️ Shield active");
   if (battleCooldown) statuses.push("🛡️ Shield active (battle cooldown)");
 
@@ -377,7 +390,7 @@ function calculateRPS(
   boostActive: boolean,
   townLevel: any
 ): { coins: number; troops: number } {
-  const multiplier = boostActive ? (townLevel?.boostMultiplier || 1) : 1;
+  const multiplier = boostActive ? townLevel?.boostMultiplier || 1 : 1;
 
   let coins = 0;
   let troops = 0;
@@ -411,7 +424,9 @@ function calculateTPS(
 /**
  * Group resources by type
  */
-function groupResourcesByType(resources: Resource[]): Record<number, Resource[]> {
+function groupResourcesByType(
+  resources: Resource[]
+): Record<number, Resource[]> {
   return resources.reduce((groups, resource) => {
     if (!groups[resource.type]) {
       groups[resource.type] = [];
@@ -473,10 +488,13 @@ async function calculateAvailableButtons(
       const resource = townResources[i];
 
       if (resource.rewardsBank > 0) {
-        const rewardType = resourceDef.rewardType === "coins" ? "coins" : "troops";
+        const rewardType =
+          resourceDef.rewardType === "coins" ? "coins" : "troops";
         buttons.push({
           id: `collect:${resource.id}`,
-          label: `Collect ${resource.rewardsBank} ${rewardType} from ${resourceDef.name} #${i + 1}`,
+          label: `Collect ${resource.rewardsBank} ${rewardType} from ${
+            resourceDef.name
+          } #${i + 1}`,
         });
       } else if (resource.level < resourceLimit.maxLevel) {
         canRequestLevelUp = false;
@@ -485,7 +503,9 @@ async function calculateAvailableButtons(
         if (town.coins >= cost) {
           buttons.push({
             id: `upgrade:${resource.id}`,
-            label: `Upgrade ${resourceDef.name} #${i + 1} to lvl ${nextLevel} (${cost}c)`,
+            label: `Upgrade ${resourceDef.name} #${
+              i + 1
+            } to lvl ${nextLevel} (${cost}c)`,
           });
         }
       }
@@ -516,14 +536,14 @@ async function calculateAvailableButtons(
 
   // Attack buttons (if can afford and have troops)
   const attackCost = townLevel?.attackCost || 0;
-  if (
-    town.coins >= attackCost &&
-    town.troops > 0 &&
-    !battleCooldown
-  ) {
+  if (town.coins >= attackCost && town.troops > 0 && !battleCooldown) {
     // Get battle suggestions
     const { getBattleSuggestions } = await import("./battle-service");
-    const suggestions = await getBattleSuggestions(town.address, currentTick, 3);
+    const suggestions = await getBattleSuggestions(
+      town.address,
+      currentTick,
+      3
+    );
 
     for (const suggestion of suggestions) {
       buttons.push({
@@ -552,7 +572,15 @@ export async function getActionButtons(
   hasPendingLevelUpRequest: boolean,
   currentTick: number
 ): Promise<ActionButton[]> {
-  const { town, resources, shieldActive, shieldCooldown, boostActive, boostCooldown, battleCooldown } = townState;
+  const {
+    town,
+    resources,
+    shieldActive,
+    shieldCooldown,
+    boostActive,
+    boostCooldown,
+    battleCooldown,
+  } = townState;
   const townLevel = TOWN_LEVELS_TABLE[town.level];
 
   // If town needs level approval, only show approve/cancel buttons

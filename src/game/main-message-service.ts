@@ -149,8 +149,8 @@ function createForm(
 
     const form = {
       id: `town-actions-${Date.now()}`,
-      title: "Town Actions",
-      subtitle: "Select an action",
+      title: undefined,
+      subtitle: undefined,
       components,
     } satisfies PlainMessage<InteractionRequest_Form>;
 

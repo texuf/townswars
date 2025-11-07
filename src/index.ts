@@ -20,7 +20,7 @@ const bot = await makeTownsBot(
 // ============================================================================
 
 bot.onSlashCommand("engage", async (handler, event) => {
-  const { userId, channelId, spaceId } = event;
+  const { userId, channelId, spaceId, eventId } = event;
 
   try {
     // Check if already engaged
@@ -29,14 +29,22 @@ bot.onSlashCommand("engage", async (handler, event) => {
     if (alreadyEngaged) {
       await handler.sendMessage(
         channelId,
-        "You're already engaged in Towns Wars! Check your town status below."
+        "You're already engaged in Towns Wars!"
       );
       return;
     }
 
+    // delete the event
+    await handler.adminRemoveEvent(channelId, eventId);
+
     // Create new town
     const currentTick = await getCurrentTick();
-    const { town } = await getOrCreateTown(userId, channelId, spaceId, currentTick);
+    const { town } = await getOrCreateTown(
+      userId,
+      channelId,
+      spaceId,
+      currentTick
+    );
 
     // Send confirmation message
     await handler.sendMessage(
@@ -48,14 +56,30 @@ bot.onSlashCommand("engage", async (handler, event) => {
     const { getTownState } = await import("./game/town-state-service");
     const { hasPendingLevelUpRequest } = await import("./game/action-service");
     const { getActionButtons } = await import("./game/message-service");
-    const { updateMainMessageWithInteraction } = await import("./game/main-message-service");
+    const { updateMainMessageWithInteraction } = await import(
+      "./game/main-message-service"
+    );
 
     const townState = await getTownState(town, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
-    const mainMessage = await renderMainMessage(townState, currentTick, pendingLevelUp);
-    const buttons = await getActionButtons(townState, pendingLevelUp, currentTick);
+    const mainMessage = await renderMainMessage(
+      townState,
+      currentTick,
+      pendingLevelUp
+    );
+    const buttons = await getActionButtons(
+      townState,
+      pendingLevelUp,
+      currentTick
+    );
 
-    await updateMainMessageWithInteraction(handler, channelId, userId, mainMessage, buttons);
+    await updateMainMessageWithInteraction(
+      handler,
+      channelId,
+      userId,
+      mainMessage,
+      buttons
+    );
   } catch (error) {
     console.error("Error in /engage command:", error);
     await handler.sendMessage(
@@ -66,7 +90,7 @@ bot.onSlashCommand("engage", async (handler, event) => {
 });
 
 bot.onSlashCommand("quit", async (handler, event) => {
-  const { userId, channelId } = event;
+  const { userId, channelId, eventId } = event;
 
   try {
     // Check if user has a town
@@ -80,6 +104,9 @@ bot.onSlashCommand("quit", async (handler, event) => {
       );
       return;
     }
+
+    // delete the event
+    await handler.adminRemoveEvent(channelId, eventId);
 
     // Delete the main message and interaction buttons
     const { deleteMainMessage } = await import("./game/main-message-service");
@@ -110,8 +137,11 @@ bot.onInteractionResponse(async (handler, event) => {
   const { userId, channelId, response } = event;
 
   // Check if this is a form response
-  if (response.payload.content.case !== 'form') {
-    console.error("Expected form response, got:", response.payload.content.case);
+  if (response.payload.content.case !== "form") {
+    console.error(
+      "Expected form response, got:",
+      response.payload.content.case
+    );
     return;
   }
 
@@ -344,14 +374,30 @@ bot.onTip(async (handler, event) => {
     const { getTownState } = await import("./game/town-state-service");
     const { hasPendingLevelUpRequest } = await import("./game/action-service");
     const { getActionButtons } = await import("./game/message-service");
-    const { updateMainMessageWithInteraction } = await import("./game/main-message-service");
+    const { updateMainMessageWithInteraction } = await import(
+      "./game/main-message-service"
+    );
 
     const townState = await getTownState(updatedTown, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(updatedTown.address);
-    const mainMessage = await renderMainMessage(townState, currentTick, pendingLevelUp);
-    const buttons = await getActionButtons(townState, pendingLevelUp, currentTick);
+    const mainMessage = await renderMainMessage(
+      townState,
+      currentTick,
+      pendingLevelUp
+    );
+    const buttons = await getActionButtons(
+      townState,
+      pendingLevelUp,
+      currentTick
+    );
 
-    await updateMainMessageWithInteraction(handler, channelId, receiverAddress, mainMessage, buttons);
+    await updateMainMessageWithInteraction(
+      handler,
+      channelId,
+      receiverAddress,
+      mainMessage,
+      buttons
+    );
   } catch (error) {
     console.error("Error handling tip:", error);
     // Don't send error to channel - tip was still received

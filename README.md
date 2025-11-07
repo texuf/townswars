@@ -79,10 +79,8 @@ Build Resources → Collect Rewards → Train Troops → Attack Towns → Win Tr
 ### Commands
 
 - `/engage` - Join the game and create your town
-- `/help` - Show help information
-- `/time` - Show current server time
 
-**Note**: Attacks are initiated using the attack buttons in your main message display, not slash commands.
+**Note**: All game actions (building, upgrading, collecting, attacking) are performed using the interactive buttons in your main message display.
 
 ### Resources
 

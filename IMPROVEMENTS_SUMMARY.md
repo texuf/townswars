@@ -201,13 +201,31 @@ Make sure the address is correct and the town has joined the game."
 4. **Monitoring**: Set up error monitoring in production
 5. **Analytics**: Track error rates from town_errors table
 
+## Slash Commands Cleanup
+
+### Removed Unnecessary Commands
+- ❌ Removed `/attack` command - Use interactive attack buttons instead
+- ❌ Removed `/help` command - Game is self-explanatory through interactive UI
+- ❌ Removed `/time` command - Not needed for gameplay
+
+### Remaining Commands
+- ✅ `/engage` - Only command needed to join the game
+
+**Rationale**:
+- Cleaner command list
+- Forces users to interact with the rich UI
+- Reduces confusion about which commands exist
+- All game actions are button-based for consistency
+
 ## Metrics
 
 - **Total Lines Added**: ~1,000+ lines (documentation and code)
+- **Total Lines Removed**: ~100+ lines (command handlers and docs)
 - **Error Handling Coverage**: 100% of critical paths
-- **Documentation Pages**: 4 comprehensive guides
-- **Database Indexes**: 17 performance indexes
+- **Documentation Pages**: 5 comprehensive guides
+- **Database Indexes**: 15 performance indexes
 - **Test Coverage**: 20 tests, 337 assertions
+- **Slash Commands**: 1 (down from 4)
 
 ---
 

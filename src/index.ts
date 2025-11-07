@@ -65,26 +65,6 @@ bot.onSlashCommand("engage", async (handler, event) => {
   }
 });
 
-bot.onSlashCommand("help", async (handler, { channelId }) => {
-  await handler.sendMessage(
-    channelId,
-    "**Available Commands:**\n\n" +
-      "• `/engage` - Join the Towns Wars game\n" +
-      "• `/help` - Show this help message\n" +
-      "• `/time` - Get the current time\n\n" +
-      "**How to Play:**\n\n" +
-      "1. Use `/engage` to create your town\n" +
-      "2. Build resources (cannons, barracks, mines)\n" +
-      "3. Collect coins and troops\n" +
-      "4. Attack other towns to win their treasury!\n"
-  );
-});
-
-bot.onSlashCommand("time", async (handler, { channelId }) => {
-  const currentTime = new Date().toLocaleString();
-  await handler.sendMessage(channelId, `Current time: ${currentTime} ⏰`);
-});
-
 // ============================================================================
 // INTERACTION RESPONSE HANDLER
 // ============================================================================

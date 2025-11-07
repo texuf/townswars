@@ -5,14 +5,6 @@ const commands = [
     name: "engage",
     description: "Join the Towns Wars game",
   },
-  {
-    name: "help",
-    description: "Get help with bot commands",
-  },
-  {
-    name: "time",
-    description: "Get the current time",
-  },
 ] as const satisfies PlainMessage<SlashCommand>[];
 
 export default commands;

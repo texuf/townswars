@@ -103,29 +103,7 @@ Main message should update showing new coin balance.
 **Expected Behavior:**
 - User messages in channel are deleted using `adminRemoveEvent`
 - Bot has admin permissions to delete any message
-- Engaged users interact only through slash commands and buttons
-
-### 5. Help Command
-
-**Steps:**
-1. Type `/help`
-2. Should see help message with commands and instructions
-
-**Expected Output:**
-```
-**Available Commands:**
-
-• `/engage` - Join the Towns Wars game
-• `/help` - Show this help message
-• `/time` - Get the current time
-
-**How to Play:**
-
-1. Use `/engage` to create your town
-2. Build resources (cannons, barracks, mines)
-3. Collect coins and troops
-4. Attack other towns to win their treasury!
-```
+- Engaged users interact only through the interactive buttons in their main message
 
 ## Database Inspection
 

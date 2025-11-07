@@ -13,6 +13,10 @@
     "typecheck": "tsc --noEmit",
     "tick": "bun run src/tick.ts",
     "tick:watch": "while true; do bun run src/tick.ts; sleep 10; done",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f postgres",
@@ -24,7 +28,9 @@
     "@towns-protocol/bot": "^0.0.402",
     "@towns-protocol/proto": "^0.0.402",
     "@towns-protocol/web3": "^0.0.402",
+    "drizzle-orm": "^0.44.7",
     "hono": "^4.7.11",
+    "postgres": "^3.4.7",
     "viem": "^2.29.3"
   },
   "devDependencies": {
@@ -32,6 +38,7 @@
     "@types/node": "^20.14.8",
     "@typescript-eslint/eslint-plugin": "^8.29.0",
     "@typescript-eslint/parser": "^8.29.0",
+    "drizzle-kit": "^0.31.6",
     "eslint": "^8.57.1",
     "eslint-import-resolver-typescript": "^4.3.2",
     "eslint-plugin-import-x": "^4.10.2",

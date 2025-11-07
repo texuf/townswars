@@ -55,7 +55,7 @@ bot.onSlashCommand("engage", async (handler, event) => {
 
     const townState = await getTownState(town, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
-    const mainMessage = await renderMainMessage(
+    const { message: mainMessage, isSpecialMessage } = await renderMainMessage(
       townState,
       currentTick,
       pendingLevelUp
@@ -63,7 +63,8 @@ bot.onSlashCommand("engage", async (handler, event) => {
     const buttons = await getActionButtons(
       townState,
       pendingLevelUp,
-      currentTick
+      currentTick,
+      isSpecialMessage
     );
 
     const handlerWrapper = {
@@ -397,7 +398,7 @@ bot.onTip(async (handler, event) => {
 
     const townState = await getTownState(updatedTown, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(updatedTown.address);
-    const mainMessage = await renderMainMessage(
+    const { message: mainMessage, isSpecialMessage } = await renderMainMessage(
       townState,
       currentTick,
       pendingLevelUp
@@ -405,7 +406,8 @@ bot.onTip(async (handler, event) => {
     const buttons = await getActionButtons(
       townState,
       pendingLevelUp,
-      currentTick
+      currentTick,
+      isSpecialMessage
     );
 
     const handlerWrapper = {

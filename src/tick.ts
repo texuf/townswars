@@ -245,7 +245,7 @@ async function tick() {
         const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
         // Refresh town state after actions
         const refreshedState = await getTownState(town, currentTick);
-        const mainMessage = await renderMainMessage(
+        const { message: mainMessage, isSpecialMessage } = await renderMainMessage(
           refreshedState,
           currentTick,
           pendingLevelUp
@@ -253,7 +253,8 @@ async function tick() {
         const buttons = await getActionButtons(
           refreshedState,
           pendingLevelUp,
-          currentTick
+          currentTick,
+          isSpecialMessage
         );
         await updateMainMessage(bot, town.channelId, mainMessage, buttons);
       } catch (error) {

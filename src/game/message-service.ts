@@ -240,7 +240,7 @@ export async function renderMainMessage(
   townState: TownState,
   currentTick: number,
   hasPendingLevelUpRequest: boolean
-): Promise<string> {
+): Promise<MainMessageResult> {
   const {
     town,
     resources,
@@ -266,11 +266,14 @@ export async function renderMainMessage(
 
     const levelUpText =
       town.level > 0 ? ` - Level ${town.level} → ${town.requestedLevel}` : "";
-    return `**${town.name}**${levelUpText}
+    return {
+      message: `**${town.name}**${levelUpText}
 
 **Treasury Approval Required**
 
-Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`;
+Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`,
+      isSpecialMessage: true,
+    };
   }
 
   // Check for pending battle action
@@ -284,29 +287,44 @@ Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`;
   // Priority 1: Pending Battle
   if (pendingBattle) {
     const targetAddress = (pendingBattle.data as any).targetAddress;
-    return await renderPendingBattle(town, targetAddress);
+    return {
+      message: await renderPendingBattle(town, targetAddress),
+      isSpecialMessage: true,
+    };
   }
 
   // Priority 2-3: Battle In Progress
   if (battleActive && battle) {
     const isAttacker = battle.attackerAddress === town.address;
     if (isAttacker) {
-      return await renderBattleInProgressAttacker(town, battle, currentTick);
+      return {
+        message: await renderBattleInProgressAttacker(town, battle, currentTick),
+        isSpecialMessage: true,
+      };
     } else {
-      return await renderBattleInProgressDefender(town, battle, currentTick);
+      return {
+        message: await renderBattleInProgressDefender(town, battle, currentTick),
+        isSpecialMessage: true,
+      };
     }
   }
 
   // Priority 4-7: Battle Summary
   if (battleSummary && battle) {
     const isAttacker = battle.attackerAddress === town.address;
-    return await renderBattleSummary(town, battle, isAttacker);
+    return {
+      message: await renderBattleSummary(town, battle, isAttacker),
+      isSpecialMessage: true,
+    };
   }
 
   // Priority 8: New Level Up
   const newLevelUp = town.leveledUpAt === currentTick;
   if (newLevelUp) {
-    return renderNewLevelUp(town);
+    return {
+      message: renderNewLevelUp(town),
+      isSpecialMessage: true,
+    };
   }
 
   // Standard display (no dramatic events)
@@ -368,7 +386,10 @@ Approve the TownsWars to withdraw up to ${approvalAmount} from your treasury.`;
     lines.push("");
   }
 
-  return lines.join("\n");
+  return {
+    message: lines.join("\n"),
+    isSpecialMessage: false,
+  };
 }
 
 /**
@@ -442,6 +463,14 @@ export interface ActionButton {
 }
 
 /**
+ * Result of rendering main message
+ */
+export interface MainMessageResult {
+  message: string;
+  isSpecialMessage: boolean;
+}
+
+/**
  * Calculate available action buttons for interaction request
  */
 async function calculateAvailableButtons(
@@ -487,16 +516,29 @@ async function calculateAvailableButtons(
     for (let i = 0; i < townResources.length; i++) {
       const resource = townResources[i];
 
+      let showedCollectButton = false;
+
       if (resource.rewardsBank > 0) {
         const rewardType =
           resourceDef.rewardType === "coins" ? "coins" : "troops";
-        buttons.push({
-          id: `collect:${resource.id}`,
-          label: `Collect ${resource.rewardsBank} ${rewardType} from ${
-            resourceDef.name
-          } #${i + 1}`,
-        });
-      } else if (resource.level < resourceLimit.maxLevel) {
+
+        // Skip troop collection if at max troops
+        const skipTroopCollection =
+          rewardType === "troops" && town.troops >= (townLevel?.maxTroops || 0);
+
+        if (!skipTroopCollection) {
+          buttons.push({
+            id: `collect:${resource.id}`,
+            label: `Collect ${resource.rewardsBank} ${rewardType} from ${
+              resourceDef.name
+            } #${i + 1}`,
+          });
+          showedCollectButton = true;
+        }
+      }
+
+      // Show upgrade button if not showing collect button and can upgrade
+      if (!showedCollectButton && resource.level < resourceLimit.maxLevel) {
         canRequestLevelUp = false;
         const nextLevel = resource.level + 1;
         const cost = resourceDef.levels[nextLevel]?.cost || 0;
@@ -570,7 +612,8 @@ async function calculateAvailableButtons(
 export async function getActionButtons(
   townState: TownState,
   hasPendingLevelUpRequest: boolean,
-  currentTick: number
+  currentTick: number,
+  isSpecialMessage: boolean = false
 ): Promise<ActionButton[]> {
   const {
     town,
@@ -584,6 +627,7 @@ export async function getActionButtons(
   const townLevel = TOWN_LEVELS_TABLE[town.level];
 
   // If town needs level approval, only show approve/cancel buttons
+  // This is a special message that DOES show buttons
   if (town.requestedLevel > town.level) {
     return [
       {
@@ -595,6 +639,11 @@ export async function getActionButtons(
         label: "Cancel Request",
       },
     ];
+  }
+
+  // If this is a special message (battle, level up celebration, etc.), don't show buttons
+  if (isSpecialMessage) {
+    return [];
   }
 
   return calculateAvailableButtons(

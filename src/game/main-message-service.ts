@@ -28,7 +28,8 @@ export async function getMainMessage(
 export async function setMainMessage(
   channelId: string,
   messageId: string,
-  content: string
+  content: string,
+  interactionEventId?: string
 ): Promise<MainMessage> {
   const existing = await getMainMessage(channelId);
 
@@ -37,6 +38,7 @@ export async function setMainMessage(
       .update(mainMessages)
       .set({
         messageId,
+        interactionEventId: interactionEventId || null,
         messageContent: content,
         updatedAt: new Date(),
       })
@@ -47,6 +49,7 @@ export async function setMainMessage(
     const newMessage: NewMainMessage = {
       channelId,
       messageId,
+      interactionEventId: interactionEventId || null,
       messageContent: content,
     };
     const [inserted] = await db.insert(mainMessages).values(newMessage).returning();
@@ -92,6 +95,7 @@ export async function updateMainMessage(
 /**
  * Update main message and interaction request
  * Sends the message, then sends interaction request with buttons if available
+ * Deletes old interaction event before creating a new one
  */
 export async function updateMainMessageWithInteraction(
   handler: MessageHandler,
@@ -100,6 +104,19 @@ export async function updateMainMessageWithInteraction(
   messageContent: string,
   buttons: ActionButton[]
 ): Promise<void> {
+  // Get existing message to check for old interaction event
+  const stored = await getMainMessage(channelId);
+
+  // Delete old interaction event if it exists
+  if (stored?.interactionEventId) {
+    try {
+      await handler.removeEvent(channelId, stored.interactionEventId);
+    } catch (error) {
+      console.error("Failed to delete old interaction event:", error);
+      // Continue anyway
+    }
+  }
+
   // Always update the main message
   await updateMainMessage(handler, channelId, messageContent);
 
@@ -122,21 +139,43 @@ export async function updateMainMessageWithInteraction(
     };
 
     try {
-      await handler.sendInteractionRequest(channelId, {
+      const interactionResult = await handler.sendInteractionRequest(channelId, {
         recipient: Buffer.from(userId.replace(/^0x/, ""), "hex"),
         content: {
           form,
         },
       });
+
+      // Update the stored message with the interaction event ID
+      const currentStored = await getMainMessage(channelId);
+      if (currentStored) {
+        await setMainMessage(
+          channelId,
+          currentStored.messageId,
+          currentStored.messageContent,
+          interactionResult.eventId
+        );
+      }
     } catch (error) {
       console.error("Failed to send interaction request:", error);
+    }
+  } else {
+    // No buttons, so clear the interaction event ID
+    const currentStored = await getMainMessage(channelId);
+    if (currentStored) {
+      await setMainMessage(
+        channelId,
+        currentStored.messageId,
+        currentStored.messageContent,
+        undefined
+      );
     }
   }
 }
 
 /**
  * Delete main message from channel
- * Removes the message from the channel and deletes the database record
+ * Removes the message and interaction event from the channel, and deletes the database record
  */
 export async function deleteMainMessage(
   handler: MessageHandler,
@@ -144,9 +183,19 @@ export async function deleteMainMessage(
 ): Promise<void> {
   const stored = await getMainMessage(channelId);
 
+  // Delete the interaction event first (if it exists)
+  if (stored?.interactionEventId) {
+    try {
+      await handler.removeEvent(channelId, stored.interactionEventId);
+    } catch (error) {
+      console.error("Failed to delete interaction event:", error);
+      // Continue anyway
+    }
+  }
+
+  // Delete the main message
   if (stored?.messageId) {
     try {
-      // Delete the actual message
       await handler.removeEvent(channelId, stored.messageId);
     } catch (error) {
       console.error("Failed to delete main message:", error);

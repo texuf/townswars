@@ -120,6 +120,7 @@ export const gameState = pgTable("game_state", {
 export const mainMessages = pgTable("main_messages", {
   channelId: text("channel_id").primaryKey(),
   messageId: text("message_id").notNull(),
+  interactionEventId: text("interaction_event_id"), // ID of the interaction request (buttons)
   messageContent: text("message_content").notNull(), // Store to compare if changed
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

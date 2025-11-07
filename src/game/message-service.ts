@@ -175,7 +175,8 @@ async function calculateAvailableButtons(
   boostActive: boolean,
   boostCooldown: boolean,
   battleCooldown: boolean,
-  hasPendingLevelUpRequest: boolean
+  hasPendingLevelUpRequest: boolean,
+  currentTick: number
 ): Promise<ActionButton[]> {
   const buttons: ActionButton[] = [];
   let canRequestLevelUp = !hasPendingLevelUpRequest;
@@ -250,8 +251,24 @@ async function calculateAvailableButtons(
     }
   }
 
-  // TODO: Attack buttons (Phase 3)
-  // TODO: Battle suggestions
+  // Attack buttons (if can afford and have troops)
+  const attackCost = townLevel?.attackCost || 0;
+  if (
+    town.coins >= attackCost &&
+    town.troops > 0 &&
+    !battleCooldown
+  ) {
+    // Get battle suggestions
+    const { getBattleSuggestions } = await import("./battle-service");
+    const suggestions = await getBattleSuggestions(town.address, currentTick, 3);
+
+    for (const suggestion of suggestions) {
+      buttons.push({
+        id: `attack:${suggestion.address}`,
+        label: `Attack ${suggestion.name} (lvl ${suggestion.level})`,
+      });
+    }
+  }
 
   // Town upgrade button
   if (canRequestLevelUp) {
@@ -269,7 +286,8 @@ async function calculateAvailableButtons(
  */
 export async function getActionButtons(
   townState: TownState,
-  hasPendingLevelUpRequest: boolean
+  hasPendingLevelUpRequest: boolean,
+  currentTick: number
 ): Promise<ActionButton[]> {
   const { town, resources, shieldActive, shieldCooldown, boostActive, boostCooldown, battleCooldown } = townState;
   const townLevel = TOWN_LEVELS_TABLE[town.level];
@@ -297,7 +315,8 @@ export async function getActionButtons(
     boostActive,
     boostCooldown,
     battleCooldown,
-    hasPendingLevelUpRequest
+    hasPendingLevelUpRequest,
+    currentTick
   );
 }
 

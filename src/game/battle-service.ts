@@ -302,3 +302,43 @@ export async function getAllBattles(): Promise<Battle[]> {
 export async function deleteBattle(battleId: string): Promise<void> {
   await db.delete(battles).where(eq(battles.id, battleId));
 }
+
+/**
+ * Get battle suggestions for a town
+ * Returns up to 3 random towns that can be attacked
+ */
+export async function getBattleSuggestions(
+  townAddress: string,
+  currentTick: number,
+  maxSuggestions: number = 3
+): Promise<Town[]> {
+  const { canBeAttacked } = await import("./town-state-service");
+  const { getAllTowns } = await import("./town-service");
+
+  // Get all towns
+  const allTowns = await getAllTowns();
+
+  // Filter out self and find attackable targets
+  const attackableTargets: Town[] = [];
+
+  for (const target of allTowns) {
+    // Skip self
+    if (target.address === townAddress) {
+      continue;
+    }
+
+    // Check if target can be attacked
+    const targetCanBeAttacked = await canBeAttacked(
+      target.address,
+      currentTick
+    );
+
+    if (targetCanBeAttacked) {
+      attackableTargets.push(target);
+    }
+  }
+
+  // Shuffle and take up to maxSuggestions
+  const shuffled = attackableTargets.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, maxSuggestions);
+}

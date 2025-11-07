@@ -199,9 +199,7 @@ async function tick() {
           }
         }
 
-        // f. TODO: Update battle suggestions (Phase 3)
-
-        // g. Update main message with interaction request
+        // f. Update main message with interaction request
         const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
         // Refresh town state after actions
         const refreshedState = await getTownState(town, currentTick);
@@ -210,7 +208,7 @@ async function tick() {
           currentTick,
           pendingLevelUp
         );
-        const buttons = await getActionButtons(refreshedState, pendingLevelUp);
+        const buttons = await getActionButtons(refreshedState, pendingLevelUp, currentTick);
         await updateMainMessageWithInteraction(
           bot,
           town.channelId,

@@ -53,7 +53,7 @@ bot.onSlashCommand("engage", async (handler, event) => {
     const townState = await getTownState(town, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(town.address);
     const mainMessage = await renderMainMessage(townState, currentTick, pendingLevelUp);
-    const buttons = await getActionButtons(townState, pendingLevelUp);
+    const buttons = await getActionButtons(townState, pendingLevelUp, currentTick);
 
     await updateMainMessageWithInteraction(handler, channelId, userId, mainMessage, buttons);
   } catch (error) {
@@ -294,7 +294,7 @@ bot.onTip(async (handler, event) => {
     const townState = await getTownState(updatedTown, currentTick);
     const pendingLevelUp = await hasPendingLevelUpRequest(updatedTown.address);
     const mainMessage = await renderMainMessage(townState, currentTick, pendingLevelUp);
-    const buttons = await getActionButtons(townState, pendingLevelUp);
+    const buttons = await getActionButtons(townState, pendingLevelUp, currentTick);
 
     await updateMainMessageWithInteraction(handler, channelId, receiverAddress, mainMessage, buttons);
   } catch (error) {

@@ -382,7 +382,7 @@ bot.onTip(async (handler, event) => {
 
     // Add coins to town
     const { addCoins } = await import("./game/town-service");
-    const updatedTown = await addCoins(receiverAddress, coinsToAdd);
+    const updatedTown = await addCoins(spaceId, coinsToAdd);
 
     // Send notification
     await handler.sendMessage(
